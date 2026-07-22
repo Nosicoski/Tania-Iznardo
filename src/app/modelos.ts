@@ -7,6 +7,8 @@ export interface Servicio {
   descripcion: string;
   detalle: string;
   badge?: string;
+  /** Imágenes de referencia (opcionales, se muestran hasta 3). */
+  imagenes?: string[];
 }
 
 export interface DatosContacto {
