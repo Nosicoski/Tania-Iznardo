@@ -1,0 +1,37 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+main {
+  flex: 1;
+}
+
+.pie {
+  background: var(--secundario);
+  color: var(--blanco);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pie-datos {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .pie {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem 1rem 1rem;
+  }
+  .pie-datos {
+    text-align: left;
+  }
+}
