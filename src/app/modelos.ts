@@ -16,6 +16,26 @@ export interface ItemCarrito {
   cantidad: number;
 }
 
+/**
+ * Una unidad del carrito con su propio horario: si el carrito tiene un servicio
+ * con cantidad 2, se agendan dos turnos independientes.
+ */
+export interface Turno {
+  /** Id estable `${servicioId}#${unidad}`, sobrevive a los cambios del carrito. */
+  id: string;
+  servicio: Servicio;
+  /** Posición 1-based dentro de la lista, para el contador "Servicio 1 de 3". */
+  numero: number;
+  fecha: Date | null;
+  hora: string | null;
+}
+
+/** Rango ocupado en milisegundos, para detectar solapamientos. */
+export interface Intervalo {
+  inicio: number;
+  fin: number;
+}
+
 export interface DatosContacto {
   nombre: string;
   apellido: string;

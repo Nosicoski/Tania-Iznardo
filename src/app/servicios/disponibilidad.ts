@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Horarios } from '../modelos';
-import { inicioDelDia } from '../datos/formato';
+import { Horarios, Intervalo } from '../modelos';
+import { conHora, inicioDelDia } from '../datos/formato';
 
 const MANANA = ['9:00', '10:00', '11:00', '12:00'];
 const TARDE = ['15:00', '16:30', '17:15', '18:00', '19:00'];
@@ -32,5 +32,39 @@ export class Disponibilidad {
       manana: MANANA.filter((_, i) => !ocupado(i)),
       tarde: TARDE.filter((_, i) => !ocupado(i + MANANA.length)),
     };
+  }
+
+  /**
+   * Horarios de la agenda menos los que se pisarían con los turnos que el
+   * usuario ya eligió: un servicio de 60 min a las 15:00 bloquea todo el rango
+   * 15:00–16:00, no solo el horario exacto.
+   */
+  horariosLibres(fecha: Date, duracionMin: number, ocupados: Intervalo[]): Horarios {
+    const agenda = this.horariosPara(fecha);
+    const libre = (hora: string) => this.entra(fecha, hora, duracionMin, ocupados);
+    return {
+      manana: agenda.manana.filter(libre),
+      tarde: agenda.tarde.filter(libre),
+    };
+  }
+
+  /** ¿El día tiene al menos un horario compatible? (punto debajo del número). */
+  tieneCupo(fecha: Date, duracionMin: number, ocupados: Intervalo[]): boolean {
+    if (!this.esReservable(fecha)) {
+      return false;
+    }
+    const { manana, tarde } = this.horariosLibres(fecha, duracionMin, ocupados);
+    return manana.length > 0 || tarde.length > 0;
+  }
+
+  private entra(
+    fecha: Date,
+    hora: string,
+    duracionMin: number,
+    ocupados: Intervalo[]
+  ): boolean {
+    const inicio = conHora(fecha, hora).getTime();
+    const fin = inicio + duracionMin * 60000;
+    return !ocupados.some((o) => inicio < o.fin && fin > o.inicio);
   }
 }

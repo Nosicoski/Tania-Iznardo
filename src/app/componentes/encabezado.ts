@@ -91,6 +91,14 @@ import { CONSULTORIO } from '../datos/catalogo';
       .dir-mobile {
         display: block;
       }
+      /* Evita que el nombre y la dirección desborden el ancho del celular. */
+      .marca-texto {
+        min-width: 0;
+      }
+      .nombre {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   `,
 })

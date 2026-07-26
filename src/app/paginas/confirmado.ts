@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReservaStore } from '../servicios/reserva-store';
 import { CONSULTORIO, PROFESIONAL } from '../datos/catalogo';
-import { fechaLarga, precioARS } from '../datos/formato';
+import { conHora, fechaLarga, precioARS } from '../datos/formato';
 
 @Component({
   selector: 'app-confirmado',
@@ -20,28 +20,22 @@ import { fechaLarga, precioARS } from '../datos/formato';
             />
           </svg>
         </div>
-        <h1>¡Turno confirmado!</h1>
+        <h1>{{ store.turnos().length === 1 ? '¡Turno confirmado!' : '¡Turnos confirmados!' }}</h1>
         <p class="subtitulo">
           Te enviamos el detalle a tu correo y teléfono.<br />
           Recordá llegar 10 minutos antes.
         </p>
 
         <dl class="detalle">
-          <div>
-            <dt>{{ store.carrito().length === 1 ? 'Servicio' : 'Servicios' }}</dt>
-            <dd>
-              @for (item of store.carrito(); track item.servicio.id) {
-                <span class="serv">
-                  {{ item.servicio.nombre }}{{ item.cantidad > 1 ? ' × ' + item.cantidad : '' }}
-                  · {{ item.servicio.duracionMin * item.cantidad }} min
-                </span>
-              }
-            </dd>
-          </div>
-          <div>
-            <dt>Fecha y hora</dt>
-            <dd>{{ fecha(store.fecha()!) }} · {{ store.hora() }} hs</dd>
-          </div>
+          @for (turno of store.turnosEnOrden(); track turno.id) {
+            <div class="turno">
+              <dt>
+                {{ turno.servicio.nombre }}
+                <span class="dur">{{ turno.servicio.duracionMin }} min</span>
+              </dt>
+              <dd>{{ fecha(turno.fecha!) }}<span class="hora">{{ turno.hora }} hs</span></dd>
+            </div>
+          }
           <div>
             <dt>Profesional</dt>
             <dd>{{ profesional.nombre }} · {{ profesional.matricula }}</dd>
@@ -115,8 +109,27 @@ import { fechaLarga, precioARS } from '../datos/formato';
       font-weight: 700;
       text-align: right;
     }
-    .serv {
+    .turno {
+      border-bottom: 1px solid var(--borde);
+      padding-bottom: 0.7rem;
+      margin-bottom: 0.3rem;
+      align-items: flex-start;
+    }
+    .turno dt {
+      color: var(--secundario);
+      font-weight: 700;
+      text-align: left;
+    }
+    .dur,
+    .hora {
       display: block;
+      font-weight: 500;
+      font-size: 0.8rem;
+      color: var(--neutro);
+    }
+    .hora {
+      color: var(--primario);
+      font-weight: 700;
     }
     .valor {
       color: var(--primario);
@@ -149,14 +162,6 @@ export class Confirmado {
   protected readonly fecha = fechaLarga;
 
   protected agregarAlCalendario(): void {
-    const servicios = this.store.carrito();
-    const fecha = this.store.fecha()!;
-    const [horas, minutos] = this.store.hora()!.split(':').map(Number);
-
-    const inicio = new Date(fecha);
-    inicio.setHours(horas, minutos, 0, 0);
-    const fin = new Date(inicio.getTime() + this.store.duracionTotal() * 60000);
-
     const marca = (d: Date) =>
       d.getFullYear().toString() +
       String(d.getMonth() + 1).padStart(2, '0') +
@@ -166,20 +171,27 @@ export class Confirmado {
       String(d.getMinutes()).padStart(2, '0') +
       '00';
 
+    // Un evento por turno: cada servicio tiene su propio horario.
+    const eventos = this.store.turnosEnOrden().flatMap((turno) => {
+      const inicio = conHora(turno.fecha!, turno.hora!);
+      const fin = new Date(inicio.getTime() + turno.servicio.duracionMin * 60000);
+      return [
+        'BEGIN:VEVENT',
+        `UID:turno-${turno.id}-${marca(inicio)}@taniaiznardoosteopatia.com`,
+        `DTSTART:${marca(inicio)}`,
+        `DTEND:${marca(fin)}`,
+        `SUMMARY:${turno.servicio.nombre} · ${this.profesional.nombre}`,
+        `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
+        'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
+        'END:VEVENT',
+      ];
+    });
+
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Tania Iznardo Osteopatia//Turnos//ES',
-      'BEGIN:VEVENT',
-      `UID:turno-${marca(inicio)}@taniaiznardoosteopatia.com`,
-      `DTSTART:${marca(inicio)}`,
-      `DTEND:${marca(fin)}`,
-      `SUMMARY:${servicios
-        .map((i) => (i.cantidad > 1 ? `${i.servicio.nombre} x${i.cantidad}` : i.servicio.nombre))
-        .join(' + ')} · ${this.profesional.nombre}`,
-      `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
-      'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
-      'END:VEVENT',
+      ...eventos,
       'END:VCALENDAR',
     ].join('\r\n');
 

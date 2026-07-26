@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
 import { PROFESIONAL } from '../datos/catalogo';
-import { fechaLarga, precioARS } from '../datos/formato';
+import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
 
 /**
  * Panel "Tu reserva": tarjeta lateral en desktop y barra fija inferior
@@ -27,30 +27,23 @@ import { fechaLarga, precioARS } from '../datos/formato';
           </span>
         </div>
       } @else {
-        @for (item of store.carrito(); track item.servicio.id) {
-          <div class="servicio">
+        @for (turno of store.turnos(); track turno.id) {
+          <div class="servicio" [class.actual]="turno.id === store.turnoActual()?.id">
             <strong>
-              {{ item.servicio.nombre }}
-              @if (item.cantidad > 1) {
-                <span class="cant">× {{ item.cantidad }}</span>
+              {{ turno.servicio.nombre }}
+              @if (store.cantidadTurnos() > 1) {
+                <span class="cant">{{ turno.numero }}/{{ store.cantidadTurnos() }}</span>
               }
             </strong>
             <span>
-              {{ item.servicio.duracionMin * item.cantidad }} min ·
-              <b class="precio">{{ precio(item.servicio.precio * item.cantidad) }}</b>
+              {{ turno.servicio.duracionMin }} min ·
+              <b class="precio">{{ precio(turno.servicio.precio) }}</b>
             </span>
-          </div>
-        }
-        @if (store.fecha()) {
-          <div class="fila">
-            <span class="clave">Fecha</span>
-            <span class="valor">{{ fecha(store.fecha()!) }}</span>
-          </div>
-        }
-        @if (store.hora()) {
-          <div class="fila">
-            <span class="clave">Hora</span>
-            <span class="valor">{{ store.hora() }} hs</span>
+            @if (turno.fecha && turno.hora) {
+              <span class="cuando">{{ fecha(turno.fecha) }} · {{ turno.hora }} hs</span>
+            } @else {
+              <span class="pendiente">Falta elegir fecha y hora</span>
+            }
           </div>
         }
         <div class="fila">
@@ -83,8 +76,10 @@ import { fechaLarga, precioARS } from '../datos/formato';
           @if (store.hayServicios()) {
             <span class="barra-detalle">
               <strong>{{ resumenTitulo() }}</strong>
-              @if (store.fecha() && store.hora()) {
-                · {{ fecha(store.fecha()!) }} · {{ store.hora() }}
+              @if (store.turnoActual(); as actual) {
+                @if (actual.fecha && actual.hora) {
+                  · {{ corta(actual.fecha, actual.hora) }}
+                }
               }
               · <b class="precio">{{ precio(store.totalCarrito()) }}</b>
             </span>
@@ -96,15 +91,17 @@ import { fechaLarga, precioARS } from '../datos/formato';
       </button>
       @if (abierta() && store.hayServicios()) {
         <div class="barra-cuerpo">
-          @for (item of store.carrito(); track item.servicio.id) {
+          @for (turno of store.turnos(); track turno.id) {
             <div class="fila">
               <span class="clave">
-                {{ item.servicio.nombre }}
-                @if (item.cantidad > 1) {
-                  <span class="cant">× {{ item.cantidad }}</span>
+                {{ turno.servicio.nombre }}
+                @if (turno.fecha && turno.hora) {
+                  <span class="cuando">{{ corta(turno.fecha, turno.hora) }}</span>
+                } @else {
+                  <span class="pendiente">Falta elegir fecha y hora</span>
                 }
               </span>
-              <span class="valor">{{ precio(item.servicio.precio * item.cantidad) }}</span>
+              <span class="valor">{{ precio(turno.servicio.precio) }}</span>
             </div>
           }
           <div class="fila">
@@ -113,18 +110,10 @@ import { fechaLarga, precioARS } from '../datos/formato';
               {{ profesional.nombre }} · {{ profesional.matricula }}
             </span>
           </div>
-          @if (store.fecha()) {
-            <div class="fila">
-              <span class="clave">Fecha</span>
-              <span class="valor">{{ fecha(store.fecha()!) }}</span>
-            </div>
-          }
-          @if (store.hora()) {
-            <div class="fila">
-              <span class="clave">Hora</span>
-              <span class="valor">{{ store.hora() }} hs</span>
-            </div>
-          }
+          <div class="fila">
+            <span class="clave">Total</span>
+            <span class="valor precio">{{ precio(store.totalCarrito()) }}</span>
+          </div>
           @if (notaPago()) {
             <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
           }
@@ -176,6 +165,17 @@ import { fechaLarga, precioARS } from '../datos/formato';
     .servicio span {
       color: var(--neutro);
       font-size: 0.82rem;
+    }
+    .servicio.actual {
+      outline: 1.5px solid var(--primario);
+    }
+    .cuando {
+      color: var(--secundario) !important;
+      font-weight: 700;
+    }
+    .pendiente {
+      color: var(--neutro-claro) !important;
+      font-style: italic;
     }
     .precio {
       color: var(--primario);
@@ -291,6 +291,23 @@ import { fechaLarga, precioARS } from '../datos/formato';
         border-top: 1px solid var(--borde);
         margin-top: 0.6rem;
         padding-top: 0.4rem;
+        max-height: 45vh;
+        overflow-y: auto;
+      }
+      .barra-cuerpo .cuando,
+      .barra-cuerpo .pendiente {
+        display: block;
+        font-size: 0.78rem;
+      }
+      .barra-cuerpo .fila {
+        align-items: flex-start;
+      }
+      .barra-cuerpo .clave {
+        flex: 1;
+        min-width: 0;
+      }
+      .barra-cuerpo .valor {
+        white-space: nowrap;
       }
       .barra-cta {
         margin-top: 0.6rem;
@@ -308,11 +325,11 @@ export class ResumenReserva {
 
   /** "Nombre del servicio" si es uno solo; "N servicios" si son varios. */
   protected readonly resumenTitulo = computed(() => {
-    const items = this.store.carrito();
-    if (items.length === 1 && items[0].cantidad === 1) {
-      return items[0].servicio.nombre;
+    const turnos = this.store.turnos();
+    if (turnos.length === 1) {
+      return turnos[0].servicio.nombre;
     }
-    return `${this.store.cantidadItems()} servicios`;
+    return `${turnos.length} servicios`;
   });
 
   /** Muestra la nota "se abona en el consultorio" (paso de datos). */
@@ -324,4 +341,5 @@ export class ResumenReserva {
 
   protected precio = precioARS;
   protected fecha = fechaLarga;
+  protected corta = fechaCorta;
 }
