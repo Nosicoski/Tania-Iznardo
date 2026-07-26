@@ -41,18 +41,6 @@ import { ReservaStore } from '../servicios/reserva-store';
         <!-- Derecha: mapa + datos + profesional -->
         <aside class="perfil-panel">
           <div class="perfil-mapa">
-            <a class="perfil-maps" [href]="mapsLink" target="_blank" rel="noopener">
-              Maps
-              <svg viewBox="0 0 16 16" width="11" height="11" fill="none" aria-hidden="true">
-                <path
-                  d="M6 3h7v7M13 3 3.5 12.5"
-                  stroke="currentColor"
-                  stroke-width="1.7"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </a>
             <iframe
               title="Ubicación del consultorio en Google Maps"
               src="https://maps.google.com/maps?q=Av.%20V%C3%A9lez%20Sarsfield%20761,%20C%C3%B3rdoba,%20Argentina&z=16&output=embed"
@@ -226,23 +214,6 @@ import { ReservaStore } from '../servicios/reserva-store';
       border: 0;
       display: block;
     }
-    .perfil-maps {
-      position: absolute;
-      top: 0.55rem;
-      left: 0.55rem;
-      z-index: 1;
-      background: var(--blanco);
-      color: var(--primario);
-      border-radius: 6px;
-      padding: 0.28rem 0.55rem;
-      font-size: 0.78rem;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      text-decoration: none;
-      box-shadow: 0 1px 5px rgba(22, 48, 47, 0.18);
-    }
     .perfil-datos {
       list-style: none;
       margin: 1.1rem 0 0;
@@ -365,6 +336,4 @@ export class PerfilNegocio {
   protected readonly heroImg = 'img/local/consultorio.jpg';
   protected readonly heroVisible = signal(true);
   protected readonly verHorario = signal(false);
-  protected readonly mapsLink =
-    'https://www.google.com/maps/search/?api=1&query=Av.+V%C3%A9lez+Sarsfield+761,+C%C3%B3rdoba,+Argentina';
 }

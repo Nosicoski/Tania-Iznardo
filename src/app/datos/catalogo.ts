@@ -46,7 +46,6 @@ export const SERVICIOS: Servicio[] = [
       'Evaluación completa de tu historia clínica y tu postura para definir el plan de tratamiento.',
     detalle:
       'Traé estudios previos si los tenés (radiografías, resonancias, análisis). En esta consulta se define la frecuencia y el enfoque del tratamiento.',
-    badge: 'Nuevos pacientes',
     imagenes: ['img/servicios/columna.svg', 'img/servicios/manos.svg', 'img/servicios/postura.svg'],
   },
   {
