@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Stepper } from '../componentes/stepper';
 import { PerfilNegocio } from '../componentes/perfil-negocio';
 import { CarritoFlotante } from '../componentes/carrito-flotante';
 import { ReservaStore } from '../servicios/reserva-store';
@@ -12,12 +11,10 @@ const MAX_IMAGENES = 3;
 
 @Component({
   selector: 'app-seleccion-servicio',
-  imports: [Stepper, PerfilNegocio, CarritoFlotante],
+  imports: [PerfilNegocio, CarritoFlotante],
   template: `
     <div class="cabecera-panel">
       <app-perfil-negocio />
-      <div class="cabecera-filler"></div>
-      <app-stepper [paso]="1" />
     </div>
     <div class="contenedor">
       <h1>Elegí tu servicio</h1>
@@ -173,14 +170,9 @@ const MAX_IMAGENES = 3;
     <app-carrito-flotante />
   `,
   styles: `
-    /* Banda superior: perfil + stepper en el mismo panel, separados por un filler */
     .cabecera-panel {
       background: var(--blanco);
       border-bottom: 1px solid var(--borde);
-    }
-    .cabecera-filler {
-      height: 1px;
-      background: var(--borde);
     }
 
     .disposicion {
