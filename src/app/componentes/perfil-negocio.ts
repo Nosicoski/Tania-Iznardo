@@ -333,7 +333,7 @@ export class PerfilNegocio {
   protected readonly store = inject(ReservaStore);
   protected readonly consultorio = CONSULTORIO;
   protected readonly profesional = PROFESIONAL;
-  protected readonly heroImg = 'img/local/consultorio.jpg';
+  protected readonly heroImg = 'img/local/consultorio.png';
   protected readonly heroVisible = signal(true);
   protected readonly verHorario = signal(false);
 }

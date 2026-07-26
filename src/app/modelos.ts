@@ -11,6 +11,11 @@ export interface Servicio {
   imagenes?: string[];
 }
 
+export interface ItemCarrito {
+  servicio: Servicio;
+  cantidad: number;
+}
+
 export interface DatosContacto {
   nombre: string;
   apellido: string;

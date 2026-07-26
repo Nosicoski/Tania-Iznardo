@@ -106,20 +106,43 @@ const MAX_IMAGENES = 3;
                         <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
                           {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
                         </button>
-                        @if (store.hayServicios()) {
+                        @if (store.cantidadDe(s.id) > 0) {
+                          <div class="stepper" [class.pulso]="pulso() === s.id">
+                            <button
+                              type="button"
+                              class="stepper-btn stepper-quitar"
+                              (click)="quitarUno(s.id)"
+                              [attr.aria-label]="'Quitar uno de ' + s.nombre"
+                            >
+                              <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
+                                <path
+                                  d="M4 6h12M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6m-6 0v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6"
+                                  stroke="currentColor"
+                                  stroke-width="1.4"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            </button>
+                            <span class="stepper-cant">{{ store.cantidadDe(s.id) }}</span>
+                            <button
+                              type="button"
+                              class="stepper-btn stepper-sumar"
+                              (click)="agregar(s)"
+                              [attr.aria-label]="'Agregar otro ' + s.nombre"
+                            >
+                              +
+                            </button>
+                          </div>
+                        } @else if (store.hayServicios()) {
                           <button
                             type="button"
                             class="btn-mas"
-                            [class.agregado]="store.estaEnCarrito(s.id)"
                             [class.pulso]="pulso() === s.id"
                             (click)="agregar(s)"
-                            [attr.aria-label]="
-                              store.estaEnCarrito(s.id)
-                                ? 'Quitar ' + s.nombre
-                                : 'Agregar ' + s.nombre
-                            "
+                            [attr.aria-label]="'Agregar ' + s.nombre"
                           >
-                            {{ store.estaEnCarrito(s.id) ? '✓' : '+' }}
+                            +
                           </button>
                         } @else {
                           <button
@@ -382,10 +405,48 @@ const MAX_IMAGENES = 3;
     .btn-mas:hover {
       background: var(--primario-suave);
     }
-    .btn-mas.agregado {
-      background: var(--primario);
-      border-color: var(--primario);
-      color: var(--blanco);
+    /* Contador de cantidad: tacho de basura (resta de a 1) · cantidad · + */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border: 1.5px solid var(--borde);
+      border-radius: 999px;
+      padding: 0.3rem 0.4rem;
+      flex-shrink: 0;
+    }
+    .stepper-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: none;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .stepper-quitar {
+      color: #b3392f;
+    }
+    .stepper-quitar:hover {
+      background: rgba(179, 57, 47, 0.1);
+    }
+    .stepper-sumar {
+      color: var(--primario);
+      font-size: 1.15rem;
+      line-height: 1;
+      border: 1.5px solid var(--primario);
+    }
+    .stepper-sumar:hover {
+      background: var(--primario-suave);
+    }
+    .stepper-cant {
+      min-width: 1ch;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--secundario);
     }
     .pulso {
       animation: pulso 0.45s ease;
@@ -506,14 +567,14 @@ export class SeleccionServicio {
   }
 
   protected agregar(servicio: Servicio): void {
-    const estaba = this.store.estaEnCarrito(servicio.id);
-    this.store.alternar(servicio);
-    if (!estaba) {
-      // Solo pulsa al sumar, no al quitar.
-      this.pulso.set(servicio.id);
-      setTimeout(() => {
-        if (this.pulso() === servicio.id) this.pulso.set(null);
-      }, 450);
-    }
+    this.store.agregar(servicio);
+    this.pulso.set(servicio.id);
+    setTimeout(() => {
+      if (this.pulso() === servicio.id) this.pulso.set(null);
+    }, 450);
+  }
+
+  protected quitarUno(id: string): void {
+    this.store.quitarUno(id);
   }
 }

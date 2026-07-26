@@ -45,27 +45,29 @@ import { precioARS } from '../datos/formato';
   styles: `
     .carrito {
       position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      left: 50%;
+      bottom: 1.5rem;
+      transform: translateX(-50%);
       z-index: 40;
+      width: min(480px, calc(100% - 2.5rem));
       background: var(--blanco);
-      border-top: 1px solid var(--borde);
-      box-shadow: 0 -6px 20px rgba(22, 48, 47, 0.1);
-      padding: 0.85rem 1.5rem calc(0.85rem + env(safe-area-inset-bottom));
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      box-shadow: 0 14px 34px rgba(22, 48, 47, 0.2);
+      padding: 0.75rem 0.9rem calc(0.75rem + env(safe-area-inset-bottom));
       animation: subir 0.28s ease;
     }
     @keyframes subir {
       from {
-        transform: translateY(100%);
+        transform: translate(-50%, calc(100% + 1.5rem));
+        opacity: 0;
       }
       to {
-        transform: translateY(0);
+        transform: translate(-50%, 0);
+        opacity: 1;
       }
     }
     .carrito-inner {
-      max-width: 1160px;
-      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -114,6 +116,8 @@ import { precioARS } from '../datos/formato';
     }
     @media (max-width: 720px) {
       .carrito {
+        bottom: 1rem;
+        width: calc(100% - 2rem);
         padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom));
       }
       .carrito-cta {
@@ -129,7 +133,10 @@ export class CarritoFlotante {
 
   protected readonly titulo = computed(() => {
     const items = this.store.carrito();
-    return items.length === 1 ? items[0].nombre : `${items.length} servicios seleccionados`;
+    if (items.length === 1 && items[0].cantidad === 1) {
+      return items[0].servicio.nombre;
+    }
+    return `${this.store.cantidadItems()} servicios seleccionados`;
   });
 
   protected agendar(): void {

@@ -30,8 +30,11 @@ import { fechaLarga, precioARS } from '../datos/formato';
           <div>
             <dt>{{ store.carrito().length === 1 ? 'Servicio' : 'Servicios' }}</dt>
             <dd>
-              @for (s of store.carrito(); track s.id) {
-                <span class="serv">{{ s.nombre }} · {{ s.duracionMin }} min</span>
+              @for (item of store.carrito(); track item.servicio.id) {
+                <span class="serv">
+                  {{ item.servicio.nombre }}{{ item.cantidad > 1 ? ' × ' + item.cantidad : '' }}
+                  · {{ item.servicio.duracionMin * item.cantidad }} min
+                </span>
               }
             </dd>
           </div>
@@ -171,7 +174,9 @@ export class Confirmado {
       `UID:turno-${marca(inicio)}@taniaiznardoosteopatia.com`,
       `DTSTART:${marca(inicio)}`,
       `DTEND:${marca(fin)}`,
-      `SUMMARY:${servicios.map((s) => s.nombre).join(' + ')} · ${this.profesional.nombre}`,
+      `SUMMARY:${servicios
+        .map((i) => (i.cantidad > 1 ? `${i.servicio.nombre} x${i.cantidad}` : i.servicio.nombre))
+        .join(' + ')} · ${this.profesional.nombre}`,
       `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
       'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
       'END:VEVENT',

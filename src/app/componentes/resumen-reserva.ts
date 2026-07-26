@@ -27,12 +27,17 @@ import { fechaLarga, precioARS } from '../datos/formato';
           </span>
         </div>
       } @else {
-        @for (s of store.carrito(); track s.id) {
+        @for (item of store.carrito(); track item.servicio.id) {
           <div class="servicio">
-            <strong>{{ s.nombre }}</strong>
+            <strong>
+              {{ item.servicio.nombre }}
+              @if (item.cantidad > 1) {
+                <span class="cant">× {{ item.cantidad }}</span>
+              }
+            </strong>
             <span>
-              {{ s.duracionMin }} min ·
-              <b class="precio">{{ precio(s.precio) }}</b>
+              {{ item.servicio.duracionMin * item.cantidad }} min ·
+              <b class="precio">{{ precio(item.servicio.precio * item.cantidad) }}</b>
             </span>
           </div>
         }
@@ -91,10 +96,15 @@ import { fechaLarga, precioARS } from '../datos/formato';
       </button>
       @if (abierta() && store.hayServicios()) {
         <div class="barra-cuerpo">
-          @for (s of store.carrito(); track s.id) {
+          @for (item of store.carrito(); track item.servicio.id) {
             <div class="fila">
-              <span class="clave">{{ s.nombre }}</span>
-              <span class="valor">{{ precio(s.precio) }}</span>
+              <span class="clave">
+                {{ item.servicio.nombre }}
+                @if (item.cantidad > 1) {
+                  <span class="cant">× {{ item.cantidad }}</span>
+                }
+              </span>
+              <span class="valor">{{ precio(item.servicio.precio * item.cantidad) }}</span>
             </div>
           }
           <div class="fila">
@@ -169,6 +179,11 @@ import { fechaLarga, precioARS } from '../datos/formato';
     }
     .precio {
       color: var(--primario);
+    }
+    .cant {
+      color: var(--neutro);
+      font-weight: 600;
+      font-size: 0.82rem;
     }
     .fila {
       display: flex;
@@ -294,7 +309,10 @@ export class ResumenReserva {
   /** "Nombre del servicio" si es uno solo; "N servicios" si son varios. */
   protected readonly resumenTitulo = computed(() => {
     const items = this.store.carrito();
-    return items.length === 1 ? items[0].nombre : `${items.length} servicios`;
+    if (items.length === 1 && items[0].cantidad === 1) {
+      return items[0].servicio.nombre;
+    }
+    return `${this.store.cantidadItems()} servicios`;
   });
 
   /** Muestra la nota "se abona en el consultorio" (paso de datos). */
