@@ -7,7 +7,7 @@ import { DatosContacto } from './paginas/datos-contacto';
 import { Confirmado } from './paginas/confirmado';
 
 const conServicio: CanActivateFn = () =>
-  inject(ReservaStore).servicio() ? true : inject(Router).createUrlTree(['/servicio']);
+  inject(ReservaStore).hayServicios() ? true : inject(Router).createUrlTree(['/servicio']);
 
 const conFechaYHora: CanActivateFn = () =>
   inject(ReservaStore).listaParaConfirmar()

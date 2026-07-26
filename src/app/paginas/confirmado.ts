@@ -28,8 +28,12 @@ import { fechaLarga, precioARS } from '../datos/formato';
 
         <dl class="detalle">
           <div>
-            <dt>Servicio</dt>
-            <dd>{{ store.servicio()!.nombre }} · {{ store.servicio()!.duracionMin }} min</dd>
+            <dt>{{ store.carrito().length === 1 ? 'Servicio' : 'Servicios' }}</dt>
+            <dd>
+              @for (s of store.carrito(); track s.id) {
+                <span class="serv">{{ s.nombre }} · {{ s.duracionMin }} min</span>
+              }
+            </dd>
           </div>
           <div>
             <dt>Fecha y hora</dt>
@@ -46,7 +50,7 @@ import { fechaLarga, precioARS } from '../datos/formato';
           <div>
             <dt>Valor</dt>
             <dd class="valor">
-              {{ precio(store.servicio()!.precio) }} · se abona en el consultorio
+              {{ precio(store.totalCarrito()) }} · se abona en el consultorio
             </dd>
           </div>
         </dl>
@@ -108,6 +112,9 @@ import { fechaLarga, precioARS } from '../datos/formato';
       font-weight: 700;
       text-align: right;
     }
+    .serv {
+      display: block;
+    }
     .valor {
       color: var(--primario);
     }
@@ -139,13 +146,13 @@ export class Confirmado {
   protected readonly fecha = fechaLarga;
 
   protected agregarAlCalendario(): void {
-    const servicio = this.store.servicio()!;
+    const servicios = this.store.carrito();
     const fecha = this.store.fecha()!;
     const [horas, minutos] = this.store.hora()!.split(':').map(Number);
 
     const inicio = new Date(fecha);
     inicio.setHours(horas, minutos, 0, 0);
-    const fin = new Date(inicio.getTime() + servicio.duracionMin * 60000);
+    const fin = new Date(inicio.getTime() + this.store.duracionTotal() * 60000);
 
     const marca = (d: Date) =>
       d.getFullYear().toString() +
@@ -164,7 +171,7 @@ export class Confirmado {
       `UID:turno-${marca(inicio)}@taniaiznardoosteopatia.com`,
       `DTSTART:${marca(inicio)}`,
       `DTEND:${marca(fin)}`,
-      `SUMMARY:${servicio.nombre} · ${this.profesional.nombre}`,
+      `SUMMARY:${servicios.map((s) => s.nombre).join(' + ')} · ${this.profesional.nombre}`,
       `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
       'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
       'END:VEVENT',

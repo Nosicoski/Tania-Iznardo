@@ -1,4 +1,6 @@
-<app-encabezado />
+@if (mostrarHeader()) {
+  <app-encabezado />
+}
 <main>
   <router-outlet />
 </main>

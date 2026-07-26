@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import { Stepper } from '../componentes/stepper';
+import { PerfilNegocio } from '../componentes/perfil-negocio';
+import { CarritoFlotante } from '../componentes/carrito-flotante';
 import { ReservaStore } from '../servicios/reserva-store';
 import { GRUPOS, SERVICIOS } from '../datos/catalogo';
 import { precioARS } from '../datos/formato';
@@ -11,9 +12,13 @@ const MAX_IMAGENES = 3;
 
 @Component({
   selector: 'app-seleccion-servicio',
-  imports: [Stepper],
+  imports: [Stepper, PerfilNegocio, CarritoFlotante],
   template: `
-    <app-stepper [paso]="1" />
+    <div class="cabecera-panel">
+      <app-perfil-negocio />
+      <div class="cabecera-filler"></div>
+      <app-stepper [paso]="1" />
+    </div>
     <div class="contenedor">
       <h1>Elegí tu servicio</h1>
 
@@ -89,7 +94,7 @@ const MAX_IMAGENES = 3;
                       @if (s.imagenes?.length) {
                         <div class="fotos">
                           @for (img of s.imagenes!.slice(0, maxImagenes); track img) {
-                            <img [src]="img" alt="" class="foto" loading="lazy" />
+                            <div class="foto-ph" aria-hidden="true"></div>
                           }
                         </div>
                       }
@@ -101,9 +106,31 @@ const MAX_IMAGENES = 3;
                         <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
                           {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
                         </button>
-                        <button type="button" class="btn btn-primario" (click)="agendar(s)">
-                          Agendar servicio
-                        </button>
+                        @if (store.hayServicios()) {
+                          <button
+                            type="button"
+                            class="btn-mas"
+                            [class.agregado]="store.estaEnCarrito(s.id)"
+                            [class.pulso]="pulso() === s.id"
+                            (click)="agregar(s)"
+                            [attr.aria-label]="
+                              store.estaEnCarrito(s.id)
+                                ? 'Quitar ' + s.nombre
+                                : 'Agregar ' + s.nombre
+                            "
+                          >
+                            {{ store.estaEnCarrito(s.id) ? '✓' : '+' }}
+                          </button>
+                        } @else {
+                          <button
+                            type="button"
+                            class="btn btn-primario"
+                            [class.pulso]="pulso() === s.id"
+                            (click)="agregar(s)"
+                          >
+                            Agendar servicio
+                          </button>
+                        }
                       </footer>
                     </article>
                   }
@@ -119,8 +146,20 @@ const MAX_IMAGENES = 3;
         </section>
       </div>
     </div>
+
+    <app-carrito-flotante />
   `,
   styles: `
+    /* Banda superior: perfil + stepper en el mismo panel, separados por un filler */
+    .cabecera-panel {
+      background: var(--blanco);
+      border-bottom: 1px solid var(--borde);
+    }
+    .cabecera-filler {
+      height: 1px;
+      background: var(--borde);
+    }
+
     .disposicion {
       display: grid;
       grid-template-columns: 250px 1fr;
@@ -194,9 +233,9 @@ const MAX_IMAGENES = 3;
       color: var(--primario);
     }
     .categoria.todos.activa {
-      background: var(--primario);
-      border-color: var(--primario);
-      color: var(--blanco);
+      background: rgba(52, 129, 126, 0.12);
+      border-color: transparent;
+      color: var(--secundario);
     }
 
     /* Grupos colapsables */
@@ -289,12 +328,13 @@ const MAX_IMAGENES = 3;
       display: flex;
       gap: 0.5rem;
     }
-    .foto {
+    .foto-ph {
       width: 46px;
       height: 46px;
       border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid var(--borde);
+      border: 1.5px dashed var(--neutro-claro);
+      background: var(--fondo);
+      flex-shrink: 0;
     }
     .descripcion {
       margin: 0;
@@ -323,6 +363,43 @@ const MAX_IMAGENES = 3;
       color: var(--primario);
       font-weight: 700;
       font-size: 0.85rem;
+    }
+    /* Botón "+" compacto cuando ya hay un servicio agregado */
+    .btn-mas {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1.5px solid var(--primario);
+      background: var(--blanco);
+      color: var(--primario);
+      font-size: 1.4rem;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .btn-mas:hover {
+      background: var(--primario-suave);
+    }
+    .btn-mas.agregado {
+      background: var(--primario);
+      border-color: var(--primario);
+      color: var(--blanco);
+    }
+    .pulso {
+      animation: pulso 0.45s ease;
+    }
+    @keyframes pulso {
+      0% {
+        transform: scale(1);
+      }
+      40% {
+        transform: scale(1.16);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
     .sin-resultados {
       color: var(--neutro);
@@ -365,8 +442,7 @@ const MAX_IMAGENES = 3;
   `,
 })
 export class SeleccionServicio {
-  private readonly router = inject(Router);
-  private readonly store = inject(ReservaStore);
+  protected readonly store = inject(ReservaStore);
 
   protected readonly gruposCatalogo = GRUPOS;
   protected readonly maxImagenes = MAX_IMAGENES;
@@ -375,6 +451,8 @@ export class SeleccionServicio {
   protected readonly categoria = signal(TODOS);
   protected readonly busqueda = signal('');
   protected readonly expandido = signal<string | null>(null);
+  /** Servicio cuyo botón "pulsa" al agregarse (feedback visual). */
+  protected readonly pulso = signal<string | null>(null);
   /** Grupos abiertos manualmente; el primero arranca abierto. */
   protected readonly abiertos = signal<string[]>([GRUPOS[0].nombre]);
 
@@ -427,8 +505,15 @@ export class SeleccionServicio {
     this.expandido.set(this.expandido() === id ? null : id);
   }
 
-  protected agendar(servicio: Servicio): void {
-    this.store.elegirServicio(servicio);
-    this.router.navigate(['/fecha-hora']);
+  protected agregar(servicio: Servicio): void {
+    const estaba = this.store.estaEnCarrito(servicio.id);
+    this.store.alternar(servicio);
+    if (!estaba) {
+      // Solo pulsa al sumar, no al quitar.
+      this.pulso.set(servicio.id);
+      setTimeout(() => {
+        if (this.pulso() === servicio.id) this.pulso.set(null);
+      }, 450);
+    }
   }
 }

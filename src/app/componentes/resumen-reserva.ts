@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
 import { PROFESIONAL } from '../datos/catalogo';
 import { fechaLarga, precioARS } from '../datos/formato';
@@ -14,7 +14,7 @@ import { fechaLarga, precioARS } from '../datos/formato';
     <!-- Tarjeta desktop -->
     <aside class="panel tarjeta">
       <h3 class="titulo">Tu reserva</h3>
-      @if (!store.servicio()) {
+      @if (!store.hayServicios()) {
         <div class="vacio">
           Todavía no elegiste un servicio.<br />
           Seleccioná uno para comenzar.
@@ -27,13 +27,15 @@ import { fechaLarga, precioARS } from '../datos/formato';
           </span>
         </div>
       } @else {
-        <div class="servicio">
-          <strong>{{ store.servicio()!.nombre }}</strong>
-          <span>
-            {{ store.servicio()!.duracionMin }} min ·
-            <b class="precio">{{ precio(store.servicio()!.precio) }}</b>
-          </span>
-        </div>
+        @for (s of store.carrito(); track s.id) {
+          <div class="servicio">
+            <strong>{{ s.nombre }}</strong>
+            <span>
+              {{ s.duracionMin }} min ·
+              <b class="precio">{{ precio(s.precio) }}</b>
+            </span>
+          </div>
+        }
         @if (store.fecha()) {
           <div class="fila">
             <span class="clave">Fecha</span>
@@ -55,7 +57,7 @@ import { fechaLarga, precioARS } from '../datos/formato';
         </div>
         <div class="total">
           <span>Total</span>
-          <b>{{ precio(store.servicio()!.precio) }}</b>
+          <b>{{ precio(store.totalCarrito()) }}</b>
         </div>
         @if (notaPago()) {
           <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
@@ -73,13 +75,13 @@ import { fechaLarga, precioARS } from '../datos/formato';
       >
         <span class="barra-info">
           <span class="barra-titulo">Tu reserva</span>
-          @if (store.servicio(); as s) {
+          @if (store.hayServicios()) {
             <span class="barra-detalle">
-              <strong>{{ s.nombre }}</strong>
+              <strong>{{ resumenTitulo() }}</strong>
               @if (store.fecha() && store.hora()) {
                 · {{ fecha(store.fecha()!) }} · {{ store.hora() }}
               }
-              · <b class="precio">{{ precio(s.precio) }}</b>
+              · <b class="precio">{{ precio(store.totalCarrito()) }}</b>
             </span>
           } @else {
             <span class="barra-detalle">Elegí un servicio para comenzar</span>
@@ -87,8 +89,14 @@ import { fechaLarga, precioARS } from '../datos/formato';
         </span>
         <span class="flecha" [class.girada]="abierta()">▲</span>
       </button>
-      @if (abierta() && store.servicio()) {
+      @if (abierta() && store.hayServicios()) {
         <div class="barra-cuerpo">
+          @for (s of store.carrito(); track s.id) {
+            <div class="fila">
+              <span class="clave">{{ s.nombre }}</span>
+              <span class="valor">{{ precio(s.precio) }}</span>
+            </div>
+          }
           <div class="fila">
             <span class="clave">Profesional</span>
             <span class="valor">
@@ -282,6 +290,12 @@ export class ResumenReserva {
   protected readonly store = inject(ReservaStore);
   protected readonly profesional = PROFESIONAL;
   protected readonly abierta = signal(false);
+
+  /** "Nombre del servicio" si es uno solo; "N servicios" si son varios. */
+  protected readonly resumenTitulo = computed(() => {
+    const items = this.store.carrito();
+    return items.length === 1 ? items[0].nombre : `${items.length} servicios`;
+  });
 
   /** Muestra la nota "se abona en el consultorio" (paso de datos). */
   readonly notaPago = input(false);
