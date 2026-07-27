@@ -3,6 +3,7 @@ import { CanActivateFn, Router, Routes } from '@angular/router';
 import { ReservaStore } from './servicios/reserva-store';
 import { SeleccionServicio } from './paginas/seleccion-servicio';
 import { FechaHora } from './paginas/fecha-hora';
+import { SeleccionProfesional } from './paginas/seleccion-profesional';
 import { DatosContacto } from './paginas/datos-contacto';
 import { Confirmado } from './paginas/confirmado';
 
@@ -13,6 +14,16 @@ const conFechaYHora: CanActivateFn = () =>
   inject(ReservaStore).listaParaConfirmar()
     ? true
     : inject(Router).createUrlTree(['/servicio']);
+
+/** El paso 3 necesita además un profesional por turno, elegido en el paso 2. */
+const conProfesional: CanActivateFn = () => {
+  const store = inject(ReservaStore);
+  const router = inject(Router);
+  if (!store.listaParaConfirmar()) {
+    return router.createUrlTree(['/servicio']);
+  }
+  return store.profesionalesListos() ? true : router.createUrlTree(['/profesional']);
+};
 
 const conReservaConfirmada: CanActivateFn = () =>
   inject(ReservaStore).confirmada()
@@ -33,9 +44,15 @@ export const routes: Routes = [
     title: 'Fecha y hora · Tania Iznardo Osteopatía',
   },
   {
+    path: 'profesional',
+    component: SeleccionProfesional,
+    canActivate: [conFechaYHora],
+    title: 'Elegí tu profesional · Tania Iznardo Osteopatía',
+  },
+  {
     path: 'datos',
     component: DatosContacto,
-    canActivate: [conFechaYHora],
+    canActivate: [conProfesional],
     title: 'Tus datos · Tania Iznardo Osteopatía',
   },
   {

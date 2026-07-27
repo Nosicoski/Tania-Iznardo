@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
-import { PROFESIONAL } from '../datos/catalogo';
+import { Profesional } from '../modelos';
 import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
 
 /**
@@ -18,13 +18,6 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
         <div class="vacio">
           Todavía no elegiste un servicio.<br />
           Seleccioná uno para comenzar.
-        </div>
-        <div class="fila">
-          <span class="clave">Profesional</span>
-          <span class="valor">
-            {{ profesional.nombre }}
-            <span class="mp">{{ profesional.matricula }}</span>
-          </span>
         </div>
       } @else {
         @for (turno of store.turnos(); track turno.id) {
@@ -44,15 +37,13 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
             } @else {
               <span class="pendiente">Falta elegir fecha y hora</span>
             }
+            @if (turno.profesional; as p) {
+              <span class="con">con {{ p.nombre }} · {{ credencial(p) }}</span>
+            } @else {
+              <span class="pendiente">Falta elegir profesional</span>
+            }
           </div>
         }
-        <div class="fila">
-          <span class="clave">Profesional</span>
-          <span class="valor">
-            {{ profesional.nombre }}
-            <span class="mp">{{ profesional.matricula }}</span>
-          </span>
-        </div>
         <div class="total">
           <span>Total</span>
           <b>{{ precio(store.totalCarrito()) }}</b>
@@ -100,16 +91,15 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
                 } @else {
                   <span class="pendiente">Falta elegir fecha y hora</span>
                 }
+                @if (turno.profesional; as p) {
+                  <span class="con">con {{ p.nombre }}</span>
+                } @else {
+                  <span class="pendiente">Falta elegir profesional</span>
+                }
               </span>
               <span class="valor">{{ precio(turno.servicio.precio) }}</span>
             </div>
           }
-          <div class="fila">
-            <span class="clave">Profesional</span>
-            <span class="valor">
-              {{ profesional.nombre }} · {{ profesional.matricula }}
-            </span>
-          </div>
           <div class="fila">
             <span class="clave">Total</span>
             <span class="valor precio">{{ precio(store.totalCarrito()) }}</span>
@@ -176,6 +166,11 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
     .pendiente {
       color: var(--neutro-claro) !important;
       font-style: italic;
+    }
+    /* Profesional asignado a ese turno */
+    .con {
+      color: var(--secundario) !important;
+      font-weight: 600;
     }
     .precio {
       color: var(--primario);
@@ -320,7 +315,9 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
 })
 export class ResumenReserva {
   protected readonly store = inject(ReservaStore);
-  protected readonly profesional = PROFESIONAL;
+  protected credencial(profesional: Profesional): string {
+    return profesional.matricula ?? profesional.profesion;
+  }
   protected readonly abierta = signal(false);
 
   /** "Nombre del servicio" si es uno solo; "N servicios" si son varios. */

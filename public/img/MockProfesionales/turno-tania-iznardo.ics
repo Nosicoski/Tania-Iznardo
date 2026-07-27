@@ -1,0 +1,20 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Tania Iznardo Osteopatia//Turnos//ES
+BEGIN:VEVENT
+UID:turno-postural-individual#0-20260728T171500@taniaiznardoosteopatia.com
+DTSTART:20260728T171500
+DTEND:20260728T180000
+SUMMARY:Terapia Postural Activa · sesión individual · Camila Ferreyra
+LOCATION:Av. Vélez Sarsfield 761, Depto. 1° B, Córdoba Capital
+DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.
+END:VEVENT
+BEGIN:VEVENT
+UID:turno-osteopatia-primera#0-20260728T190000@taniaiznardoosteopatia.com
+DTSTART:20260728T190000
+DTEND:20260728T200000
+SUMMARY:Primera consulta de Osteopatía (valoración inicial) · Martín Salazar
+LOCATION:Av. Vélez Sarsfield 761, Depto. 1° B, Córdoba Capital
+DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.
+END:VEVENT
+END:VCALENDAR

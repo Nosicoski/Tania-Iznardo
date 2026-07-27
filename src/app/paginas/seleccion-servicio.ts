@@ -103,11 +103,12 @@ const MAX_IMAGENES = 3;
                         <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
                           {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
                         </button>
-                        @if (store.cantidadDe(s.id) > 0) {
+                        @if (store.hayServicios()) {
                           <div class="stepper" [class.pulso]="pulso() === s.id">
                             <button
                               type="button"
                               class="stepper-btn stepper-quitar"
+                              [disabled]="store.cantidadDe(s.id) === 0"
                               (click)="quitarUno(s.id)"
                               [attr.aria-label]="'Quitar uno de ' + s.nombre"
                             >
@@ -121,7 +122,10 @@ const MAX_IMAGENES = 3;
                                 />
                               </svg>
                             </button>
-                            <span class="stepper-cant">{{ store.cantidadDe(s.id) }}</span>
+                            <span
+                              class="stepper-cant"
+                              [class.vacio]="store.cantidadDe(s.id) === 0"
+                            >{{ store.cantidadDe(s.id) }}</span>
                             <button
                               type="button"
                               class="stepper-btn stepper-sumar"
@@ -131,16 +135,6 @@ const MAX_IMAGENES = 3;
                               +
                             </button>
                           </div>
-                        } @else if (store.hayServicios()) {
-                          <button
-                            type="button"
-                            class="btn-mas"
-                            [class.pulso]="pulso() === s.id"
-                            (click)="agregar(s)"
-                            [attr.aria-label]="'Agregar ' + s.nombre"
-                          >
-                            +
-                          </button>
                         } @else {
                           <button
                             type="button"
@@ -379,25 +373,9 @@ const MAX_IMAGENES = 3;
       font-weight: 700;
       font-size: 0.85rem;
     }
-    /* Botón "+" compacto cuando ya hay un servicio agregado */
-    .btn-mas {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 1.5px solid var(--primario);
-      background: var(--blanco);
-      color: var(--primario);
-      font-size: 1.4rem;
-      line-height: 1;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .btn-mas:hover {
-      background: var(--primario-suave);
-    }
-    /* Contador de cantidad: tacho de basura (resta de a 1) · cantidad · + */
+    /* Contador de cantidad: tacho de basura (resta de a 1) · cantidad · +
+       Aparece en todas las tarjetas desde que hay un servicio en el carrito,
+       así agregar el segundo servicio es un solo clic. */
     .stepper {
       display: flex;
       align-items: center;
@@ -421,8 +399,13 @@ const MAX_IMAGENES = 3;
     .stepper-quitar {
       color: #b3392f;
     }
-    .stepper-quitar:hover {
+    .stepper-quitar:hover:not(:disabled) {
       background: rgba(179, 57, 47, 0.1);
+    }
+    /* Sin unidades de este servicio no hay nada que quitar. */
+    .stepper-quitar:disabled {
+      color: var(--neutro-claro);
+      cursor: default;
     }
     .stepper-sumar {
       color: var(--primario);
@@ -439,6 +422,9 @@ const MAX_IMAGENES = 3;
       font-weight: 700;
       font-size: 0.9rem;
       color: var(--secundario);
+    }
+    .stepper-cant.vacio {
+      color: var(--neutro-claro);
     }
     .pulso {
       animation: pulso 0.45s ease;

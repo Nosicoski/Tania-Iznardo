@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReservaStore } from '../servicios/reserva-store';
-import { CONSULTORIO, PROFESIONAL } from '../datos/catalogo';
+import { CONSULTORIO } from '../datos/catalogo';
+import { Profesional } from '../modelos';
 import { conHora, fechaLarga, precioARS } from '../datos/formato';
 
 @Component({
@@ -32,14 +33,13 @@ import { conHora, fechaLarga, precioARS } from '../datos/formato';
               <dt>
                 {{ turno.servicio.nombre }}
                 <span class="dur">{{ turno.servicio.duracionMin }} min</span>
+                @if (turno.profesional; as p) {
+                  <span class="dur">con {{ p.nombre }} · {{ credencial(p) }}</span>
+                }
               </dt>
               <dd>{{ fecha(turno.fecha!) }}<span class="hora">{{ turno.hora }} hs</span></dd>
             </div>
           }
-          <div>
-            <dt>Profesional</dt>
-            <dd>{{ profesional.nombre }} · {{ profesional.matricula }}</dd>
-          </div>
           <div>
             <dt>Dirección</dt>
             <dd>{{ consultorio.direccion }}</dd>
@@ -156,10 +156,13 @@ import { conHora, fechaLarga, precioARS } from '../datos/formato';
 export class Confirmado {
   private readonly router = inject(Router);
   protected readonly store = inject(ReservaStore);
-  protected readonly profesional = PROFESIONAL;
   protected readonly consultorio = CONSULTORIO;
   protected readonly precio = precioARS;
   protected readonly fecha = fechaLarga;
+
+  protected credencial(profesional: Profesional): string {
+    return profesional.matricula ?? profesional.profesion;
+  }
 
   protected agregarAlCalendario(): void {
     const marca = (d: Date) =>
@@ -180,7 +183,9 @@ export class Confirmado {
         `UID:turno-${turno.id}-${marca(inicio)}@taniaiznardoosteopatia.com`,
         `DTSTART:${marca(inicio)}`,
         `DTEND:${marca(fin)}`,
-        `SUMMARY:${turno.servicio.nombre} · ${this.profesional.nombre}`,
+        `SUMMARY:${turno.servicio.nombre}${
+          turno.profesional ? ' · ' + turno.profesional.nombre : ''
+        }`,
         `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
         'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
         'END:VEVENT',

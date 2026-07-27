@@ -232,6 +232,6 @@ export class DatosContacto {
   }
 
   protected volver(): void {
-    this.router.navigate(['/fecha-hora']);
+    this.router.navigate(['/profesional']);
   }
 }

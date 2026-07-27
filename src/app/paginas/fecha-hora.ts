@@ -10,7 +10,7 @@ import { Disponibilidad } from '../servicios/disponibilidad';
   selector: 'app-fecha-hora',
   imports: [Stepper, ResumenReserva, CalendarioMes],
   template: `
-    <app-stepper [paso]="2" />
+    <app-stepper [paso]="1" />
     <div class="contenedor">
       @if (turno(); as t) {
         <button type="button" class="volver" (click)="volver()">
@@ -282,7 +282,7 @@ export class FechaHora {
 
   protected continuar(): void {
     if (this.esUltimo()) {
-      this.router.navigate(['/datos']);
+      this.router.navigate(['/profesional']);
       return;
     }
     this.store.irAlTurno(this.store.indiceActual() + 1);

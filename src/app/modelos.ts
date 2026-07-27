@@ -11,6 +11,18 @@ export interface Servicio {
   imagenes?: string[];
 }
 
+export interface Profesional {
+  id: string;
+  nombre: string;
+  /** Etiqueta corta que se muestra en el globo debajo del nombre. */
+  profesion: string;
+  matricula?: string;
+  /** Ruta de la foto; si falta se muestra el avatar con iniciales. */
+  foto?: string;
+  /** Categorías de servicio que atiende (ver GRUPOS). */
+  especialidades: string[];
+}
+
 export interface ItemCarrito {
   servicio: Servicio;
   cantidad: number;
@@ -28,6 +40,8 @@ export interface Turno {
   numero: number;
   fecha: Date | null;
   hora: string | null;
+  /** Profesional elegido para este turno (paso 2). */
+  profesional: Profesional | null;
 }
 
 /** Rango ocupado en milisegundos, para detectar solapamientos. */

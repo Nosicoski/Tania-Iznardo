@@ -1,6 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
-import { CONSULTORIO, PROFESIONAL } from '../datos/catalogo';
+import { Component, computed, inject, signal } from '@angular/core';
+import { CONSULTORIO } from '../datos/catalogo';
+import { PROFESIONALES } from '../datos/profesionales';
+import { FichaProfesional } from './ficha-profesional';
 import { ReservaStore } from '../servicios/reserva-store';
+
+/** Cuántos profesionales se ven antes de "Ver N más". */
+const TOPE = 4;
 
 /**
  * Cabecera de perfil del negocio (estilo AgendaPro), visible en el paso 1.
@@ -10,6 +15,7 @@ import { ReservaStore } from '../servicios/reserva-store';
  */
 @Component({
   selector: 'app-perfil-negocio',
+  imports: [FichaProfesional],
   template: `
     <section class="perfil">
       <div class="perfil-grid">
@@ -100,13 +106,16 @@ import { ReservaStore } from '../servicios/reserva-store';
           <div class="perfil-sep"></div>
 
           <div class="perfil-prof-titulo">Profesionales</div>
-          <div class="perfil-prof">
-            <div class="perfil-foto" aria-hidden="true"></div>
-            <div class="perfil-prof-info">
-              <span class="perfil-prof-nombre">{{ profesional.nombre }}</span>
-              <span class="perfil-prof-rol">Osteópata · {{ profesional.matricula }}</span>
-            </div>
+          <div class="perfil-equipo">
+            @for (p of visibles(); track p.id) {
+              <app-ficha-profesional [prof]="p" />
+            }
           </div>
+          @if (profesionales.length > tope) {
+            <button type="button" class="perfil-link ver-mas" (click)="verTodos.set(!verTodos())">
+              {{ verTodos() ? 'Ver menos' : 'Ver ' + (profesionales.length - tope) + ' más' }}
+            </button>
+          }
         </aside>
       </div>
     </section>
@@ -257,31 +266,17 @@ import { ReservaStore } from '../servicios/reserva-store';
       color: var(--neutro);
       margin-bottom: 0.75rem;
     }
-    .perfil-prof {
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
+    /* Grilla del equipo: avatar + nombre + globo con la profesión */
+    .perfil-equipo {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem 0.5rem;
     }
-    .perfil-foto {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 1.5px dashed var(--neutro-claro);
-      background: var(--fondo);
-      flex-shrink: 0;
-    }
-    .perfil-prof-info {
-      display: flex;
-      flex-direction: column;
-    }
-    .perfil-prof-nombre {
+    .ver-mas {
+      margin-top: 0.9rem;
+      font-size: 0.85rem;
+      color: var(--primario);
       font-weight: 700;
-      font-size: 0.9rem;
-      color: var(--secundario);
-    }
-    .perfil-prof-rol {
-      font-size: 0.78rem;
-      color: var(--neutro);
     }
 
     /* Botón flotante de WhatsApp */
@@ -332,8 +327,14 @@ import { ReservaStore } from '../servicios/reserva-store';
 export class PerfilNegocio {
   protected readonly store = inject(ReservaStore);
   protected readonly consultorio = CONSULTORIO;
-  protected readonly profesional = PROFESIONAL;
+  protected readonly profesionales = PROFESIONALES;
+  protected readonly tope = TOPE;
   protected readonly heroImg = 'img/local/consultorio.png';
   protected readonly heroVisible = signal(true);
   protected readonly verHorario = signal(false);
+  protected readonly verTodos = signal(false);
+
+  protected readonly visibles = computed(() =>
+    this.verTodos() ? this.profesionales : this.profesionales.slice(0, TOPE)
+  );
 }

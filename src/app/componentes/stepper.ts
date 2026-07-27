@@ -1,8 +1,9 @@
 import { Component, input } from '@angular/core';
 
+/** El servicio ya quedó elegido al llegar acá, así que el paso 1 es la agenda. */
 const PASOS = [
-  { numero: 1, etiqueta: 'Servicio' },
-  { numero: 2, etiqueta: 'Fecha y hora' },
+  { numero: 1, etiqueta: 'Fecha y hora' },
+  { numero: 2, etiqueta: 'Profesional' },
   { numero: 3, etiqueta: 'Datos de contacto' },
 ];
 
