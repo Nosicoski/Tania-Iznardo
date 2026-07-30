@@ -1,30 +1,12 @@
-import { Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { Encabezado } from './componentes/encabezado';
-import { CONSULTORIO } from './datos/catalogo';
+import { ModalCuenta } from './componentes/modal-cuenta';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Encabezado],
+  imports: [RouterOutlet, Encabezado, ModalCuenta],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {
-  private readonly router = inject(Router);
-  protected readonly consultorio = CONSULTORIO;
-
-  private readonly urlActual = toSignal(
-    this.router.events.pipe(
-      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      map((e) => e.urlAfterRedirects)
-    ),
-    { initialValue: this.router.url }
-  );
-
-  /** En el paso 1 el perfil ya identifica el negocio: ahí ocultamos el header. */
-  protected readonly mostrarHeader = computed(
-    () => !this.urlActual().startsWith('/servicio')
-  );
-}
+export class App {}

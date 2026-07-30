@@ -1,10 +1,12 @@
 import { Component, input } from '@angular/core';
 
-/** El servicio ya quedó elegido al llegar acá, así que el paso 1 es la agenda. */
+/**
+ * El servicio ya quedó elegido al llegar acá, así que el paso 1 es la agenda:
+ * profesional, día y horario se resuelven en la misma pantalla.
+ */
 const PASOS = [
-  { numero: 1, etiqueta: 'Fecha y hora' },
-  { numero: 2, etiqueta: 'Profesional' },
-  { numero: 3, etiqueta: 'Datos de contacto' },
+  { numero: 1, etiqueta: 'Profesional · Fecha · Hora' },
+  { numero: 2, etiqueta: 'Datos de contacto' },
 ];
 
 @Component({

@@ -5,6 +5,30 @@ import { CONSULTORIO } from '../datos/catalogo';
 import { Profesional } from '../modelos';
 import { conHora, fechaLarga, precioARS } from '../datos/formato';
 
+/** Recordatorios de la demo: falta confirmarlos con el consultorio. */
+const PREPARATIVOS = [
+  {
+    titulo: 'Llegá 10 minutos antes',
+    detalle: 'Así podemos completar tu ficha con tranquilidad antes de empezar.',
+  },
+  {
+    titulo: 'Traé ropa cómoda',
+    detalle: 'Calzas o short y remera; en la sesión vas a necesitar moverte.',
+  },
+  {
+    titulo: 'Estudios y documentación',
+    detalle: 'Si tenés radiografías, resonancias o estudios recientes, traelos.',
+  },
+  {
+    titulo: 'DNI y credencial',
+    detalle: 'Documento y, si corresponde, la credencial de tu obra social.',
+  },
+  {
+    titulo: 'Evitá comidas pesadas',
+    detalle: 'Mejor no comer abundante en la hora previa al turno.',
+  },
+];
+
 @Component({
   selector: 'app-confirmado',
   template: `
@@ -21,36 +45,62 @@ import { conHora, fechaLarga, precioARS } from '../datos/formato';
             />
           </svg>
         </div>
-        <h1>{{ store.turnos().length === 1 ? '¡Turno confirmado!' : '¡Turnos confirmados!' }}</h1>
+        <h1>¡Turno confirmado!</h1>
         <p class="subtitulo">
           Te enviamos el detalle a tu correo y teléfono.<br />
           Recordá llegar 10 minutos antes.
         </p>
 
         <dl class="detalle">
-          @for (turno of store.turnosEnOrden(); track turno.id) {
+          @if (store.servicio(); as s) {
             <div class="turno">
               <dt>
-                {{ turno.servicio.nombre }}
-                <span class="dur">{{ turno.servicio.duracionMin }} min</span>
-                @if (turno.profesional; as p) {
+                {{ s.nombre }}
+                <span class="dur">{{ s.duracionMin }} min</span>
+                @if (store.profesionalFinal(); as p) {
                   <span class="dur">con {{ p.nombre }} · {{ credencial(p) }}</span>
                 }
               </dt>
-              <dd>{{ fecha(turno.fecha!) }}<span class="hora">{{ turno.hora }} hs</span></dd>
+              <dd>
+                {{ fecha(store.fecha()!) }}<span class="hora">{{ store.hora() }} hs</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Dirección</dt>
+              <dd>{{ consultorio.direccion }}</dd>
+            </div>
+            <div>
+              <dt>Valor</dt>
+              <dd class="valor">{{ precio(s.precio) }} · se abona en el consultorio</dd>
             </div>
           }
-          <div>
-            <dt>Dirección</dt>
-            <dd>{{ consultorio.direccion }}</dd>
-          </div>
-          <div>
-            <dt>Valor</dt>
-            <dd class="valor">
-              {{ precio(store.totalCarrito()) }} · se abona en el consultorio
-            </dd>
-          </div>
         </dl>
+
+        <!-- Recordatorios mockeados: falta la lista real del consultorio -->
+        <section class="preparar">
+          <h2>Prepará tu visita</h2>
+          <ul>
+            @for (item of preparativos; track item.titulo) {
+              <li>
+                <span class="check" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
+                    <path
+                      d="M3 8.5 6.5 12 13 4.5"
+                      stroke="currentColor"
+                      stroke-width="2.4"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span class="texto">
+                  <b>{{ item.titulo }}</b>
+                  <span>{{ item.detalle }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
 
         <div class="acciones">
           <button type="button" class="btn btn-primario" (click)="agregarAlCalendario()">
@@ -134,6 +184,56 @@ import { conHora, fechaLarga, precioARS } from '../datos/formato';
     .valor {
       color: var(--primario);
     }
+    /* Prepará tu visita */
+    .preparar {
+      text-align: left;
+      background: var(--primario-suave);
+      border-radius: var(--radio-chico);
+      padding: 1.25rem 1.4rem;
+      margin-bottom: 1.75rem;
+    }
+    .preparar h2 {
+      font-size: 0.95rem;
+      margin-bottom: 0.9rem;
+    }
+    .preparar ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .preparar li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primario);
+      color: var(--blanco);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .texto {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      font-size: 0.85rem;
+    }
+    .texto b {
+      color: var(--secundario);
+    }
+    .texto span {
+      color: var(--neutro);
+      line-height: 1.45;
+    }
+
     .acciones {
       display: flex;
       justify-content: center;
@@ -155,6 +255,7 @@ import { conHora, fechaLarga, precioARS } from '../datos/formato';
 })
 export class Confirmado {
   private readonly router = inject(Router);
+  protected readonly preparativos = PREPARATIVOS;
   protected readonly store = inject(ReservaStore);
   protected readonly consultorio = CONSULTORIO;
   protected readonly precio = precioARS;
@@ -174,29 +275,28 @@ export class Confirmado {
       String(d.getMinutes()).padStart(2, '0') +
       '00';
 
-    // Un evento por turno: cada servicio tiene su propio horario.
-    const eventos = this.store.turnosEnOrden().flatMap((turno) => {
-      const inicio = conHora(turno.fecha!, turno.hora!);
-      const fin = new Date(inicio.getTime() + turno.servicio.duracionMin * 60000);
-      return [
-        'BEGIN:VEVENT',
-        `UID:turno-${turno.id}-${marca(inicio)}@taniaiznardoosteopatia.com`,
-        `DTSTART:${marca(inicio)}`,
-        `DTEND:${marca(fin)}`,
-        `SUMMARY:${turno.servicio.nombre}${
-          turno.profesional ? ' · ' + turno.profesional.nombre : ''
-        }`,
-        `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
-        'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
-        'END:VEVENT',
-      ];
-    });
+    const servicio = this.store.servicio();
+    const fecha = this.store.fecha();
+    const hora = this.store.hora();
+    if (!servicio || !fecha || !hora) {
+      return;
+    }
+    const profesional = this.store.profesionalFinal();
+    const inicio = conHora(fecha, hora);
+    const fin = new Date(inicio.getTime() + servicio.duracionMin * 60000);
 
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Tania Iznardo Osteopatia//Turnos//ES',
-      ...eventos,
+      'BEGIN:VEVENT',
+      `UID:turno-${servicio.id}-${marca(inicio)}@taniaiznardoosteopatia.com`,
+      `DTSTART:${marca(inicio)}`,
+      `DTEND:${marca(fin)}`,
+      `SUMMARY:${servicio.nombre}${profesional ? ' · ' + profesional.nombre : ''}`,
+      `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
+      'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
+      'END:VEVENT',
       'END:VCALENDAR',
     ].join('\r\n');
 

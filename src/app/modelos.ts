@@ -19,35 +19,32 @@ export interface Profesional {
   matricula?: string;
   /** Ruta de la foto; si falta se muestra el avatar con iniciales. */
   foto?: string;
-  /** Categorías de servicio que atiende (ver GRUPOS). */
-  especialidades: string[];
-}
-
-export interface ItemCarrito {
-  servicio: Servicio;
-  cantidad: number;
-}
-
-/**
- * Una unidad del carrito con su propio horario: si el carrito tiene un servicio
- * con cantidad 2, se agendan dos turnos independientes.
- */
-export interface Turno {
-  /** Id estable `${servicioId}#${unidad}`, sobrevive a los cambios del carrito. */
-  id: string;
-  servicio: Servicio;
-  /** Posición 1-based dentro de la lista, para el contador "Servicio 1 de 3". */
-  numero: number;
-  fecha: Date | null;
-  hora: string | null;
-  /** Profesional elegido para este turno (paso 2). */
-  profesional: Profesional | null;
+  /** Ids de los servicios que ofrece (ver SERVICIOS). */
+  servicios: string[];
+  /** Días que atiende, con la numeración de Date#getDay (1 = lunes). */
+  dias: number[];
 }
 
 /** Rango ocupado en milisegundos, para detectar solapamientos. */
 export interface Intervalo {
   inicio: number;
   fin: number;
+}
+
+/**
+ * Turno ya confirmado y guardado en localStorage. Se persiste plano (ids y
+ * milisegundos) para que sobreviva a los cambios del catálogo.
+ */
+export interface TurnoGuardado {
+  servicioId: string;
+  profesionalId: string;
+  /** Inicio del turno en milisegundos desde época. */
+  inicio: number;
+  duracionMin: number;
+  /** Cuenta que lo reservó; vacío si se reservó como invitado. */
+  email?: string;
+  /** A nombre de quién quedó el turno (se muestra en "Mis turnos"). */
+  paciente?: string;
 }
 
 export interface DatosContacto {

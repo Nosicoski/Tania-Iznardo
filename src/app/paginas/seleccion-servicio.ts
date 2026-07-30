@@ -1,55 +1,32 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ApplicationRef, Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { PerfilNegocio } from '../componentes/perfil-negocio';
-import { CarritoFlotante } from '../componentes/carrito-flotante';
 import { ReservaStore } from '../servicios/reserva-store';
 import { GRUPOS, SERVICIOS } from '../datos/catalogo';
+import { PROFESIONALES, inicialesDe, ofrece } from '../datos/profesionales';
 import { precioARS } from '../datos/formato';
-import { Servicio } from '../modelos';
+import { Profesional, Servicio } from '../modelos';
 
-const TODOS = 'Todos';
 const MAX_IMAGENES = 3;
 
 @Component({
   selector: 'app-seleccion-servicio',
-  imports: [PerfilNegocio, CarritoFlotante],
+  imports: [PerfilNegocio],
   template: `
     <div class="cabecera-panel">
       <app-perfil-negocio />
     </div>
     <div class="contenedor">
-      <h1>Elegí tu servicio</h1>
-
       <div class="disposicion">
         <aside class="lateral">
-          <div class="buscador">
-            <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
-              <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6" />
-              <path d="m13.5 13.5 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-            <input
-              type="search"
-              placeholder="¿Qué servicio buscás?"
-              [value]="busqueda()"
-              (input)="busqueda.set(entrada($event))"
-              aria-label="Buscar servicio"
-            />
-          </div>
-
+          <h1>Elegí tu servicio</h1>
           <nav class="categorias" aria-label="Categorías">
-            <button
-              type="button"
-              class="categoria todos"
-              [class.activa]="categoria() === 'Todos'"
-              (click)="elegirCategoria('Todos')"
-            >
-              Todos
-            </button>
-            @for (g of gruposCatalogo; track g.nombre) {
+            @for (g of grupos(); track g.nombre) {
               <button
                 type="button"
                 class="categoria"
-                [class.activa]="categoria() === g.nombre"
-                (click)="elegirCategoria(g.nombre)"
+                [class.activa]="abierto() === g.nombre"
+                (click)="irAlGrupo(g.nombre)"
               >
                 <span class="categoria-nombre">{{ g.nombre }}</span>
                 <span class="categoria-tagline">{{ g.tagline }}</span>
@@ -58,23 +35,59 @@ const MAX_IMAGENES = 3;
           </nav>
         </aside>
 
-        <section class="grupos">
+        <div class="principal">
+          <!-- Filtro por profesional: acota el catálogo a lo que ofrece cada uno -->
+          <div class="filtro-profes" role="group" aria-label="Filtrar por profesional">
+            @for (p of profesionales; track p.id) {
+              <div class="globo-caja">
+                <button
+                  type="button"
+                  class="globo-profe"
+                  [attr.aria-pressed]="filtro()?.id === p.id"
+                  [class.activo]="filtro()?.id === p.id"
+                  (click)="filtrarPor(p)"
+                >
+                  <span class="avatar">
+                    @if (conFoto(p)) {
+                      <img [src]="p.foto" [alt]="p.nombre" (error)="fotoRota(p.id)" />
+                    } @else {
+                      <span class="iniciales">{{ iniciales(p.nombre) }}</span>
+                    }
+                  </span>
+                  <span class="globo-nombre">{{ p.nombre }}</span>
+                  <span class="globo-profesion">{{ p.profesion }}</span>
+                </button>
+                @if (filtro()?.id === p.id) {
+                  <button
+                    type="button"
+                    class="quitar-filtro"
+                    (click)="filtrarPor(null)"
+                    [attr.aria-label]="'Dejar de filtrar por ' + p.nombre"
+                  >
+                    ×
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <section class="grupos">
           @for (g of grupos(); track g.nombre) {
-            <div class="grupo">
+            <div class="grupo" [id]="ancla(g.nombre)">
               <button
                 type="button"
                 class="grupo-cabecera"
                 (click)="alternarGrupo(g.nombre)"
-                [attr.aria-expanded]="estaAbierto(g.nombre)"
+                [attr.aria-expanded]="abierto() === g.nombre"
               >
                 <span class="grupo-titulo">
                   <b>{{ g.nombre }}</b>
                   <i>· {{ g.tagline }}</i>
                 </span>
-                <span class="grupo-signo">{{ estaAbierto(g.nombre) ? '−' : '+' }}</span>
+                <span class="grupo-signo">{{ abierto() === g.nombre ? '−' : '+' }}</span>
               </button>
 
-              @if (estaAbierto(g.nombre)) {
+              @if (abierto() === g.nombre) {
                 <div class="grupo-cuerpo">
                   @for (s of g.servicios; track s.id) {
                     <article class="servicio">
@@ -103,70 +116,161 @@ const MAX_IMAGENES = 3;
                         <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
                           {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
                         </button>
-                        @if (store.hayServicios()) {
-                          <div class="stepper" [class.pulso]="pulso() === s.id">
-                            <button
-                              type="button"
-                              class="stepper-btn stepper-quitar"
-                              [disabled]="store.cantidadDe(s.id) === 0"
-                              (click)="quitarUno(s.id)"
-                              [attr.aria-label]="'Quitar uno de ' + s.nombre"
-                            >
-                              <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
-                                <path
-                                  d="M4 6h12M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6m-6 0v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6"
-                                  stroke="currentColor"
-                                  stroke-width="1.4"
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                />
-                              </svg>
-                            </button>
-                            <span
-                              class="stepper-cant"
-                              [class.vacio]="store.cantidadDe(s.id) === 0"
-                            >{{ store.cantidadDe(s.id) }}</span>
-                            <button
-                              type="button"
-                              class="stepper-btn stepper-sumar"
-                              (click)="agregar(s)"
-                              [attr.aria-label]="'Agregar otro ' + s.nombre"
-                            >
-                              +
-                            </button>
-                          </div>
-                        } @else {
-                          <button
-                            type="button"
-                            class="btn btn-primario"
-                            [class.pulso]="pulso() === s.id"
-                            (click)="agregar(s)"
-                          >
-                            Agendar servicio
-                          </button>
-                        }
+                        <button
+                          type="button"
+                          class="btn btn-primario"
+                          (click)="agendar(s)"
+                        >
+                          Agendar servicio
+                        </button>
                       </footer>
                     </article>
                   }
                 </div>
               }
             </div>
-          } @empty {
-            <p class="sin-resultados">
-              No encontramos servicios para tu búsqueda. Probá con otra palabra o
-              elegí otra categoría.
-            </p>
           }
-        </section>
+          </section>
+        </div>
       </div>
     </div>
 
-    <app-carrito-flotante />
+    <!-- Solo se puede agendar un turno por vez: avisamos antes de pisar el actual -->
+    @if (aReemplazar(); as nuevo) {
+      <div class="fondo-modal" (click)="cancelarCambio()">
+        <div
+          class="modal tarjeta"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-titulo"
+          (click)="$event.stopPropagation()"
+        >
+          <h2 id="modal-titulo">¿Cambiar de servicio?</h2>
+          <p class="modal-texto">
+            Ya tenés en curso la reserva de <b>{{ store.servicio()?.nombre }}</b
+            >. Si elegís <b>{{ nuevo.nombre }}</b> vas a perder el horario y el
+            profesional que habías seleccionado.
+          </p>
+          <div class="modal-acciones">
+            <button type="button" class="btn btn-borde" (click)="cancelarCambio()">
+              Seguir con el actual
+            </button>
+            <button type="button" class="btn btn-primario" (click)="confirmarCambio()">
+              Cambiar de servicio
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: `
     .cabecera-panel {
       background: var(--blanco);
       border-bottom: 1px solid var(--borde);
+    }
+
+    /* Columna central: el filtro arranca y termina donde las tarjetas */
+    .principal {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* Filtro por profesional (globos verticales) */
+    .filtro-profes {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.1rem;
+      overflow-x: auto;
+      /* Aire arriba y abajo: si no, el scroll recorta el anillo del activo. */
+      padding: 0.5rem 0;
+    }
+    .globo-caja {
+      position: relative;
+      flex-shrink: 0;
+    }
+    /* Cruz para soltar el filtro sin tener que volver a apuntarle al globo */
+    .quitar-filtro {
+      position: absolute;
+      top: -2px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--primario);
+      background: var(--blanco);
+      color: var(--primario);
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .quitar-filtro:hover {
+      background: var(--primario);
+      color: var(--blanco);
+    }
+    .globo-profe {
+      width: 88px;
+      background: none;
+      border: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--primario-suave);
+      color: var(--primario);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: box-shadow 0.15s ease;
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .iniciales {
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+    }
+    .globo-profe:hover .avatar {
+      box-shadow: 0 0 0 3px var(--blanco), 0 0 0 5px var(--borde);
+    }
+    /* Anillo doble = profesional por el que se está filtrando */
+    .globo-profe.activo .avatar {
+      box-shadow: 0 0 0 3px var(--blanco), 0 0 0 5px var(--primario);
+    }
+    .globo-nombre {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--secundario);
+      text-align: center;
+      line-height: 1.25;
+      /* Dos líneas fijas: así las píldoras de abajo quedan a la misma altura. */
+      min-height: 2.5em;
+    }
+    .globo-profesion {
+      background: var(--primario-suave);
+      color: var(--primario);
+      border-radius: 999px;
+      padding: 0.12rem 0.55rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      line-height: 1.3;
+      text-align: center;
+      max-width: 100%;
     }
 
     .disposicion {
@@ -177,29 +281,10 @@ const MAX_IMAGENES = 3;
       margin-top: 1.25rem;
     }
 
-    /* Lateral: buscador + categorías */
-    .buscador {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--blanco);
-      border: 1px solid var(--borde);
-      border-radius: 999px;
-      padding: 0.5rem 0.9rem;
-      color: var(--neutro-claro);
+    /* Lateral: título + navegador de categorías (no filtra, solo lleva al grupo) */
+    .lateral h1 {
+      font-size: 1.5rem;
       margin-bottom: 1rem;
-    }
-    .buscador input {
-      border: none;
-      outline: none;
-      flex: 1;
-      min-width: 0;
-      background: none;
-      color: var(--secundario);
-      font-size: 0.88rem;
-    }
-    .buscador input::placeholder {
-      color: var(--neutro-claro);
     }
     .categorias {
       display: flex;
@@ -225,33 +310,21 @@ const MAX_IMAGENES = 3;
       font-style: italic;
       color: var(--neutro);
     }
-    .categoria.todos {
-      font-weight: 700;
-      font-size: 0.88rem;
-      color: var(--secundario);
-      background: var(--blanco);
-      border: 1px solid var(--borde);
-      border-radius: var(--radio-chico);
-      margin-bottom: 0.35rem;
-    }
-    .categoria:hover .categoria-nombre,
-    .categoria.todos:hover {
+    .categoria:hover .categoria-nombre {
       color: var(--primario);
     }
     .categoria.activa .categoria-nombre {
       color: var(--primario);
     }
-    .categoria.todos.activa {
-      background: rgba(52, 129, 126, 0.12);
-      border-color: transparent;
-      color: var(--secundario);
-    }
 
-    /* Grupos colapsables */
+    /* Grupos colapsables: solo uno abierto a la vez, todos cerrados al entrar */
     .grupos {
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
+    }
+    .grupo {
+      scroll-margin-top: 1rem;
     }
     .grupo-cabecera {
       width: 100%;
@@ -373,75 +446,46 @@ const MAX_IMAGENES = 3;
       font-weight: 700;
       font-size: 0.85rem;
     }
-    /* Contador de cantidad: tacho de basura (resta de a 1) · cantidad · +
-       Aparece en todas las tarjetas desde que hay un servicio en el carrito,
-       así agregar el segundo servicio es un solo clic. */
-    .stepper {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      border: 1.5px solid var(--borde);
-      border-radius: 999px;
-      padding: 0.3rem 0.4rem;
-      flex-shrink: 0;
-    }
-    .stepper-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      background: none;
+
+    /* Aviso de reemplazo de la reserva en curso */
+    .fondo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(22, 48, 47, 0.45);
       display: grid;
       place-items: center;
-      flex-shrink: 0;
-      transition: background 0.15s ease, color 0.15s ease;
+      padding: 1.25rem;
+      animation: aparecer 0.18s ease;
     }
-    .stepper-quitar {
-      color: #b3392f;
+    @keyframes aparecer {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
-    .stepper-quitar:hover:not(:disabled) {
-      background: rgba(179, 57, 47, 0.1);
+    .modal {
+      width: min(440px, 100%);
+      padding: 1.5rem;
     }
-    /* Sin unidades de este servicio no hay nada que quitar. */
-    .stepper-quitar:disabled {
-      color: var(--neutro-claro);
-      cursor: default;
+    .modal h2 {
+      font-size: 1.1rem;
     }
-    .stepper-sumar {
-      color: var(--primario);
-      font-size: 1.15rem;
-      line-height: 1;
-      border: 1.5px solid var(--primario);
-    }
-    .stepper-sumar:hover {
-      background: var(--primario-suave);
-    }
-    .stepper-cant {
-      min-width: 1ch;
-      text-align: center;
-      font-weight: 700;
+    .modal-texto {
+      margin: 0.75rem 0 1.5rem;
+      color: var(--neutro);
       font-size: 0.9rem;
+    }
+    .modal-texto b {
       color: var(--secundario);
     }
-    .stepper-cant.vacio {
-      color: var(--neutro-claro);
-    }
-    .pulso {
-      animation: pulso 0.45s ease;
-    }
-    @keyframes pulso {
-      0% {
-        transform: scale(1);
-      }
-      40% {
-        transform: scale(1.16);
-      }
-      100% {
-        transform: scale(1);
-      }
-    }
-    .sin-resultados {
-      color: var(--neutro);
+    .modal-acciones {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
 
     @media (max-width: 900px) {
@@ -462,14 +506,12 @@ const MAX_IMAGENES = 3;
         gap: 0.5rem;
         padding-bottom: 0.5rem;
       }
-      .categoria,
-      .categoria.todos {
+      .categoria {
         flex-shrink: 0;
         border: 1px solid var(--borde);
         background: var(--blanco);
         border-radius: 999px;
         padding: 0.45rem 1rem;
-        margin-bottom: 0;
       }
       .categoria-tagline {
         display: none;
@@ -477,82 +519,128 @@ const MAX_IMAGENES = 3;
       .categoria.activa {
         border-color: var(--primario);
       }
+      .modal-acciones .btn {
+        width: 100%;
+      }
     }
   `,
 })
 export class SeleccionServicio {
   protected readonly store = inject(ReservaStore);
+  private readonly router = inject(Router);
+  private readonly app = inject(ApplicationRef);
 
-  protected readonly gruposCatalogo = GRUPOS;
+  protected readonly profesionales = PROFESIONALES;
   protected readonly maxImagenes = MAX_IMAGENES;
   protected readonly precio = precioARS;
+  protected readonly iniciales = inicialesDe;
 
-  protected readonly categoria = signal(TODOS);
-  protected readonly busqueda = signal('');
   protected readonly expandido = signal<string | null>(null);
-  /** Servicio cuyo botón "pulsa" al agregarse (feedback visual). */
-  protected readonly pulso = signal<string | null>(null);
-  /** Grupos abiertos manualmente; el primero arranca abierto. */
-  protected readonly abiertos = signal<string[]>([GRUPOS[0].nombre]);
+  /** Acordeón: un solo grupo abierto y ninguno al entrar. */
+  protected readonly abierto = signal<string | null>(null);
+  /** Servicio que espera confirmación porque pisaría la reserva en curso. */
+  protected readonly aReemplazar = signal<Servicio | null>(null);
+  /**
+   * Profesional por el que se filtra el catálogo; null = todo el equipo. Al
+   * volver desde el paso de agenda arranca en el que ya venía elegido.
+   */
+  protected readonly filtro = signal<Profesional | null>(this.store.profesional());
+  /** Fotos que no cargaron: caen al avatar con iniciales. */
+  private readonly sinFoto = signal<string[]>([]);
 
+  /** Grupos con al menos un servicio visible; alimenta el listado y el lateral. */
   protected readonly grupos = computed(() => {
-    const texto = this.busqueda().trim().toLowerCase();
-    return GRUPOS.filter(
-      (g) => this.categoria() === TODOS || g.nombre === this.categoria()
-    )
-      .map((g) => ({
-        ...g,
-        servicios: SERVICIOS.filter(
-          (s) =>
-            s.categoria === g.nombre &&
-            (texto === '' ||
-              s.nombre.toLowerCase().includes(texto) ||
-              s.descripcion.toLowerCase().includes(texto))
-        ),
-      }))
-      .filter((g) => g.servicios.length > 0);
+    const profesional = this.filtro();
+    return GRUPOS.map((g) => ({
+      ...g,
+      servicios: SERVICIOS.filter(
+        (s) =>
+          s.categoria === g.nombre && (!profesional || ofrece(profesional, s.id))
+      ),
+    })).filter((g) => g.servicios.length > 0);
   });
 
-  protected estaAbierto(nombre: string): boolean {
-    // Con búsqueda activa o categoría elegida, los grupos visibles se expanden solos.
-    if (this.busqueda().trim() !== '' || this.categoria() !== TODOS) {
-      return true;
-    }
-    return this.abiertos().includes(nombre);
+  protected conFoto(profesional: Profesional): boolean {
+    return !!profesional.foto && !this.sinFoto().includes(profesional.id);
+  }
+
+  protected fotoRota(id: string): void {
+    this.sinFoto.update((lista) => (lista.includes(id) ? lista : [...lista, id]));
+  }
+
+  /**
+   * Cambiar de profesional puede hacer desaparecer el grupo abierto. Tocar al
+   * que ya estaba elegido suelta el filtro (lo mismo que la cruz).
+   */
+  protected filtrarPor(profesional: Profesional | null): void {
+    const elegido = this.filtro()?.id === profesional?.id ? null : profesional;
+    this.filtro.set(elegido);
+    this.abierto.set(null);
+    this.expandido.set(null);
+  }
+
+  protected ancla(nombre: string): string {
+    return 'grupo-' + nombre.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-');
   }
 
   protected alternarGrupo(nombre: string): void {
-    this.abiertos.update((lista) =>
-      lista.includes(nombre) ? lista.filter((n) => n !== nombre) : [...lista, nombre]
-    );
+    this.abierto.update((actual) => (actual === nombre ? null : nombre));
   }
 
-  protected elegirCategoria(nombre: string): void {
-    this.categoria.set(nombre);
-    if (nombre !== TODOS) {
-      this.abiertos.update((lista) =>
-        lista.includes(nombre) ? lista : [...lista, nombre]
-      );
+  /** El navegador lateral no filtra: abre ese grupo y lleva al usuario hasta él. */
+  protected irAlGrupo(nombre: string): void {
+    if (this.abierto() === nombre) {
+      this.desplazarA(nombre);
+      return;
     }
+    this.abierto.set(nombre);
+    // El grupo anterior se cierra y el de destino se mueve, así que primero
+    // aplicamos el cambio al DOM y recién después medimos hacia dónde ir.
+    this.app.tick();
+    this.desplazarA(nombre);
   }
 
-  protected entrada(evento: Event): string {
-    return (evento.target as HTMLInputElement).value;
+  private desplazarA(nombre: string): void {
+    document
+      .getElementById(this.ancla(nombre))
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   protected alternarDetalle(id: string): void {
     this.expandido.set(this.expandido() === id ? null : id);
   }
 
-  protected agregar(servicio: Servicio): void {
-    this.store.agregar(servicio);
-    this.pulso.set(servicio.id);
-    setTimeout(() => {
-      if (this.pulso() === servicio.id) this.pulso.set(null);
-    }, 450);
+  protected agendar(servicio: Servicio): void {
+    const actual = this.store.servicio();
+    // Solo molestamos si hay algo real que perder: otro servicio ya agendado.
+    if (actual && actual.id !== servicio.id && this.store.hayHorario()) {
+      this.aReemplazar.set(servicio);
+      return;
+    }
+    this.reservar(servicio);
   }
 
-  protected quitarUno(id: string): void {
-    this.store.quitarUno(id);
+  protected confirmarCambio(): void {
+    const servicio = this.aReemplazar();
+    this.aReemplazar.set(null);
+    if (servicio) {
+      this.reservar(servicio);
+    }
+  }
+
+  protected cancelarCambio(): void {
+    this.aReemplazar.set(null);
+  }
+
+  private reservar(servicio: Servicio): void {
+    if (this.store.servicio()?.id !== servicio.id) {
+      this.store.elegirServicio(servicio);
+    }
+    // El profesional por el que filtró llega ya elegido al paso de agenda.
+    const profesional = this.filtro();
+    if (profesional && this.store.profesional()?.id !== profesional.id) {
+      this.store.elegirProfesional(profesional);
+    }
+    this.router.navigate(['/agendar']);
   }
 }

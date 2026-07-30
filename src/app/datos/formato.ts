@@ -64,6 +64,22 @@ export function inicioDeMes(fecha: Date): Date {
   return new Date(fecha.getFullYear(), fecha.getMonth(), 1);
 }
 
+/** Lunes de la semana de la fecha dada. */
+export function inicioDeSemana(fecha: Date): Date {
+  const d = inicioDelDia(fecha);
+  return sumarDias(d, -((d.getDay() + 6) % 7));
+}
+
+/** "27 jul – 2 ago 2026" para la cabecera de la vista semanal. */
+export function rangoSemana(lunes: Date): string {
+  const domingo = sumarDias(lunes, 6);
+  const dia = (f: Date) =>
+    new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
+      .format(f)
+      .replace('.', '');
+  return `${dia(lunes)} – ${dia(domingo)} ${domingo.getFullYear()}`;
+}
+
 export function sumarMeses(fecha: Date, meses: number): Date {
   return new Date(fecha.getFullYear(), fecha.getMonth() + meses, 1);
 }

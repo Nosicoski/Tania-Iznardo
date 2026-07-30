@@ -2,27 +2,22 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { ReservaStore } from './servicios/reserva-store';
 import { SeleccionServicio } from './paginas/seleccion-servicio';
-import { FechaHora } from './paginas/fecha-hora';
-import { SeleccionProfesional } from './paginas/seleccion-profesional';
+import { Agendar } from './paginas/agendar';
 import { DatosContacto } from './paginas/datos-contacto';
 import { Confirmado } from './paginas/confirmado';
+import { MisTurnos } from './paginas/mis-turnos';
 
 const conServicio: CanActivateFn = () =>
-  inject(ReservaStore).hayServicios() ? true : inject(Router).createUrlTree(['/servicio']);
+  inject(ReservaStore).hayServicio() ? true : inject(Router).createUrlTree(['/servicio']);
 
-const conFechaYHora: CanActivateFn = () =>
-  inject(ReservaStore).listaParaConfirmar()
-    ? true
-    : inject(Router).createUrlTree(['/servicio']);
-
-/** El paso 3 necesita además un profesional por turno, elegido en el paso 2. */
-const conProfesional: CanActivateFn = () => {
+/** El paso de datos necesita el turno completo: servicio, horario y profesional. */
+const conTurnoCompleto: CanActivateFn = () => {
   const store = inject(ReservaStore);
   const router = inject(Router);
-  if (!store.listaParaConfirmar()) {
+  if (!store.hayServicio()) {
     return router.createUrlTree(['/servicio']);
   }
-  return store.profesionalesListos() ? true : router.createUrlTree(['/profesional']);
+  return store.listaParaDatos() ? true : router.createUrlTree(['/agendar']);
 };
 
 const conReservaConfirmada: CanActivateFn = () =>
@@ -38,22 +33,21 @@ export const routes: Routes = [
     title: 'Elegí tu servicio · Tania Iznardo Osteopatía',
   },
   {
-    path: 'fecha-hora',
-    component: FechaHora,
+    path: 'agendar',
+    component: Agendar,
     canActivate: [conServicio],
-    title: 'Fecha y hora · Tania Iznardo Osteopatía',
-  },
-  {
-    path: 'profesional',
-    component: SeleccionProfesional,
-    canActivate: [conFechaYHora],
-    title: 'Elegí tu profesional · Tania Iznardo Osteopatía',
+    title: 'Elegí día y horario · Tania Iznardo Osteopatía',
   },
   {
     path: 'datos',
     component: DatosContacto,
-    canActivate: [conProfesional],
+    canActivate: [conTurnoCompleto],
     title: 'Tus datos · Tania Iznardo Osteopatía',
+  },
+  {
+    path: 'mis-turnos',
+    component: MisTurnos,
+    title: 'Mis turnos · Tania Iznardo Osteopatía',
   },
   {
     path: 'confirmado',

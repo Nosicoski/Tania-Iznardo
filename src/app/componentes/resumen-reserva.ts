@@ -1,12 +1,12 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
 import { Profesional } from '../modelos';
 import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
 
 /**
- * Panel "Tu reserva": tarjeta lateral en desktop y barra fija inferior
- * (colapsable) en mobile. En el paso de datos, la barra mobile muestra
- * además el botón de confirmación (cta).
+ * Panel "Tu reserva" del único turno en curso: tarjeta lateral en desktop y
+ * barra fija inferior (colapsable) en mobile. En el paso de datos, la barra
+ * mobile muestra además el botón de confirmación (cta).
  */
 @Component({
   selector: 'app-resumen-reserva',
@@ -14,43 +14,45 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
     <!-- Tarjeta desktop -->
     <aside class="panel tarjeta">
       <h3 class="titulo">Tu reserva</h3>
-      @if (!store.hayServicios()) {
-        <div class="vacio">
-          Todavía no elegiste un servicio.<br />
-          Seleccioná uno para comenzar.
-        </div>
-      } @else {
-        @for (turno of store.turnos(); track turno.id) {
-          <div class="servicio" [class.actual]="turno.id === store.turnoActual()?.id">
-            <strong>
-              {{ turno.servicio.nombre }}
-              @if (store.cantidadTurnos() > 1) {
-                <span class="cant">{{ turno.numero }}/{{ store.cantidadTurnos() }}</span>
+      @if (store.servicio(); as s) {
+        <div class="servicio">
+          <strong>{{ s.nombre }}</strong>
+          <span>
+            {{ s.duracionMin }} min ·
+            <b class="precio">{{ precio(s.precio) }}</b>
+          </span>
+          @if (store.fecha(); as f) {
+            @if (store.hora(); as h) {
+              <span class="cuando">{{ fecha(f) }} · {{ h }} hs</span>
+            } @else {
+              <span class="pendiente">Falta elegir el horario</span>
+            }
+          } @else {
+            <span class="pendiente">Falta elegir fecha y hora</span>
+          }
+          @if (store.profesionalFinal(); as p) {
+            <span class="con">
+              con {{ p.nombre }} · {{ credencial(p) }}
+              @if (store.profesionalAutomatico()) {
+                <i class="auto">asignado automáticamente</i>
               }
-            </strong>
-            <span>
-              {{ turno.servicio.duracionMin }} min ·
-              <b class="precio">{{ precio(turno.servicio.precio) }}</b>
             </span>
-            @if (turno.fecha && turno.hora) {
-              <span class="cuando">{{ fecha(turno.fecha) }} · {{ turno.hora }} hs</span>
-            } @else {
-              <span class="pendiente">Falta elegir fecha y hora</span>
-            }
-            @if (turno.profesional; as p) {
-              <span class="con">con {{ p.nombre }} · {{ credencial(p) }}</span>
-            } @else {
-              <span class="pendiente">Falta elegir profesional</span>
-            }
-          </div>
-        }
+          } @else {
+            <span class="pendiente">Falta elegir profesional</span>
+          }
+        </div>
         <div class="total">
           <span>Total</span>
-          <b>{{ precio(store.totalCarrito()) }}</b>
+          <b>{{ precio(s.precio) }}</b>
         </div>
         @if (notaPago()) {
           <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
         }
+      } @else {
+        <div class="vacio">
+          Todavía no elegiste un servicio.<br />
+          Seleccioná uno para comenzar.
+        </div>
       }
     </aside>
 
@@ -64,15 +66,15 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       >
         <span class="barra-info">
           <span class="barra-titulo">Tu reserva</span>
-          @if (store.hayServicios()) {
+          @if (store.servicio(); as s) {
             <span class="barra-detalle">
-              <strong>{{ resumenTitulo() }}</strong>
-              @if (store.turnoActual(); as actual) {
-                @if (actual.fecha && actual.hora) {
-                  · {{ corta(actual.fecha, actual.hora) }}
+              <strong>{{ s.nombre }}</strong>
+              @if (store.fecha(); as f) {
+                @if (store.hora(); as h) {
+                  · {{ corta(f, h) }}
                 }
               }
-              · <b class="precio">{{ precio(store.totalCarrito()) }}</b>
+              · <b class="precio">{{ precio(s.precio) }}</b>
             </span>
           } @else {
             <span class="barra-detalle">Elegí un servicio para comenzar</span>
@@ -80,34 +82,38 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
         </span>
         <span class="flecha" [class.girada]="abierta()">▲</span>
       </button>
-      @if (abierta() && store.hayServicios()) {
-        <div class="barra-cuerpo">
-          @for (turno of store.turnos(); track turno.id) {
+      @if (abierta()) {
+        @if (store.servicio(); as s) {
+          <div class="barra-cuerpo">
             <div class="fila">
               <span class="clave">
-                {{ turno.servicio.nombre }}
-                @if (turno.fecha && turno.hora) {
-                  <span class="cuando">{{ corta(turno.fecha, turno.hora) }}</span>
+                {{ s.nombre }}
+                @if (store.fecha(); as f) {
+                  @if (store.hora(); as h) {
+                    <span class="cuando">{{ corta(f, h) }}</span>
+                  } @else {
+                    <span class="pendiente">Falta elegir el horario</span>
+                  }
                 } @else {
                   <span class="pendiente">Falta elegir fecha y hora</span>
                 }
-                @if (turno.profesional; as p) {
+                @if (store.profesionalFinal(); as p) {
                   <span class="con">con {{ p.nombre }}</span>
                 } @else {
                   <span class="pendiente">Falta elegir profesional</span>
                 }
               </span>
-              <span class="valor">{{ precio(turno.servicio.precio) }}</span>
+              <span class="valor">{{ precio(s.precio) }}</span>
             </div>
-          }
-          <div class="fila">
-            <span class="clave">Total</span>
-            <span class="valor precio">{{ precio(store.totalCarrito()) }}</span>
+            <div class="fila">
+              <span class="clave">Total</span>
+              <span class="valor precio">{{ precio(s.precio) }}</span>
+            </div>
+            @if (notaPago()) {
+              <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
+            }
           </div>
-          @if (notaPago()) {
-            <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
-          }
-        </div>
+        }
       }
       @if (cta()) {
         <div class="barra-cta">
@@ -156,9 +162,6 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       color: var(--neutro);
       font-size: 0.82rem;
     }
-    .servicio.actual {
-      outline: 1.5px solid var(--primario);
-    }
     .cuando {
       color: var(--secundario) !important;
       font-weight: 700;
@@ -167,18 +170,19 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       color: var(--neutro-claro) !important;
       font-style: italic;
     }
-    /* Profesional asignado a ese turno */
+    /* Profesional asignado al turno */
     .con {
       color: var(--secundario) !important;
       font-weight: 600;
     }
+    .auto {
+      display: block;
+      color: var(--neutro);
+      font-weight: 500;
+      font-size: 0.75rem;
+    }
     .precio {
       color: var(--primario);
-    }
-    .cant {
-      color: var(--neutro);
-      font-weight: 600;
-      font-size: 0.82rem;
     }
     .fila {
       display: flex;
@@ -193,12 +197,6 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
     .valor {
       font-weight: 700;
       text-align: right;
-    }
-    .mp {
-      display: block;
-      color: var(--neutro-claro);
-      font-weight: 500;
-      font-size: 0.75rem;
     }
     .total {
       display: flex;
@@ -225,7 +223,7 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
     .barra {
       display: none;
     }
-    @media (max-width: 720px) {
+    @media (max-width: 1024px) {
       .panel {
         display: none;
       }
@@ -290,7 +288,8 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
         overflow-y: auto;
       }
       .barra-cuerpo .cuando,
-      .barra-cuerpo .pendiente {
+      .barra-cuerpo .pendiente,
+      .barra-cuerpo .con {
         display: block;
         font-size: 0.78rem;
       }
@@ -310,24 +309,21 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       .barra-cta .btn {
         width: 100%;
       }
+      /* Visible desde el arranque, atenuado hasta que la reserva esté completa. */
+      .barra-cta .btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
     }
   `,
 })
 export class ResumenReserva {
   protected readonly store = inject(ReservaStore);
+  protected readonly abierta = signal(false);
+
   protected credencial(profesional: Profesional): string {
     return profesional.matricula ?? profesional.profesion;
   }
-  protected readonly abierta = signal(false);
-
-  /** "Nombre del servicio" si es uno solo; "N servicios" si son varios. */
-  protected readonly resumenTitulo = computed(() => {
-    const turnos = this.store.turnos();
-    if (turnos.length === 1) {
-      return turnos[0].servicio.nombre;
-    }
-    return `${turnos.length} servicios`;
-  });
 
   /** Muestra la nota "se abona en el consultorio" (paso de datos). */
   readonly notaPago = input(false);

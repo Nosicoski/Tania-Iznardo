@@ -1,12 +1,5 @@
-@if (mostrarHeader()) {
-  <app-encabezado />
-}
+<app-encabezado />
 <main>
   <router-outlet />
 </main>
-<footer class="pie">
-  <span>Tania Iznardo Osteopatía</span>
-  <span class="pie-datos">
-    {{ consultorio.direccion }} · {{ consultorio.ciudad }} · {{ consultorio.horario }}
-  </span>
-</footer>
+<app-modal-cuenta />
