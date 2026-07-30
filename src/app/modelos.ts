@@ -9,6 +9,12 @@ export interface Servicio {
   badge?: string;
   /** Imágenes de referencia (opcionales, se muestran hasta 3). */
   imagenes?: string[];
+  /**
+   * Lo que el paciente tiene que hacer antes de venir (ayuno, estudios, ropa).
+   * Si está, la tarjeta lleva una marca discreta y al agregarlo se avisa una
+   * vez. No bloquea nada: es información, no una restricción.
+   */
+  requisitos?: string;
 }
 
 export interface Profesional {
@@ -32,6 +38,21 @@ export interface Intervalo {
 }
 
 /**
+ * Un servicio ya ubicado dentro del bloque de la visita: con su profesional
+ * resuelto y su horario en minutos desde la medianoche. Los tramos de una
+ * misma visita son consecutivos y nunca se solapan.
+ */
+export interface Tramo {
+  servicio: Servicio;
+  profesional: Profesional;
+  /** Inicio en minutos desde la medianoche (ver aMinutos/aHora). */
+  inicioMin: number;
+  duracionMin: number;
+  /** El sistema lo asignó; el usuario no lo pidió explícitamente. */
+  automatico: boolean;
+}
+
+/**
  * Turno ya confirmado y guardado en localStorage. Se persiste plano (ids y
  * milisegundos) para que sobreviva a los cambios del catálogo.
  */
@@ -45,6 +66,12 @@ export interface TurnoGuardado {
   email?: string;
   /** A nombre de quién quedó el turno (se muestra en "Mis turnos"). */
   paciente?: string;
+  /**
+   * Visita a la que pertenece: los turnos de una reserva múltiple comparten
+   * este id y se muestran agrupados. Los turnos viejos no lo tienen y cada uno
+   * cuenta como su propia visita.
+   */
+  reservaId?: string;
 }
 
 export interface DatosContacto {

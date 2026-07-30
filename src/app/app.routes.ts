@@ -8,13 +8,13 @@ import { Confirmado } from './paginas/confirmado';
 import { MisTurnos } from './paginas/mis-turnos';
 
 const conServicio: CanActivateFn = () =>
-  inject(ReservaStore).hayServicio() ? true : inject(Router).createUrlTree(['/servicio']);
+  inject(ReservaStore).hayServicios() ? true : inject(Router).createUrlTree(['/servicio']);
 
-/** El paso de datos necesita el turno completo: servicio, horario y profesional. */
+/** El paso de datos necesita la visita resuelta: servicios, día y bloque. */
 const conTurnoCompleto: CanActivateFn = () => {
   const store = inject(ReservaStore);
   const router = inject(Router);
-  if (!store.hayServicio()) {
+  if (!store.hayServicios()) {
     return router.createUrlTree(['/servicio']);
   }
   return store.listaParaDatos() ? true : router.createUrlTree(['/agendar']);

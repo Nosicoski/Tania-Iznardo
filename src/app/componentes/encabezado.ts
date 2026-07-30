@@ -3,9 +3,11 @@ import { Router } from '@angular/router';
 import { CONSULTORIO } from '../datos/catalogo';
 import { Cuentas } from '../servicios/cuentas';
 import { inicialesDe } from '../datos/profesionales';
+import { CarruselTurnos } from './carrusel-turnos';
 
 @Component({
   selector: 'app-encabezado',
+  imports: [CarruselTurnos],
   host: {
     // Un clic en cualquier otro lado cierra el menú de la cuenta.
     '(document:click)': 'menu.set(false)',
@@ -15,7 +17,7 @@ import { inicialesDe } from '../datos/profesionales';
     <header class="cabecera">
       <div class="marca">
         <button type="button" class="nombre" (click)="irAlInicio()">
-          Tania Iznardo <span class="rubro">Osteopatía</span>
+          Tania Iznardo <span class="rubro"></span>
         </button>
         <span class="direccion">
           <svg viewBox="0 0 20 20" width="13" height="13" fill="none" aria-hidden="true">
@@ -65,6 +67,8 @@ import { inicialesDe } from '../datos/profesionales';
                 <strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong>
                 <span>{{ usuario.email }}</span>
               </div>
+              <!-- Vistazo a lo que viene, sin tener que entrar a Mis turnos -->
+              <app-carrusel-turnos />
               <button type="button" class="menu-item" role="menuitem" (click)="irAMisTurnos()">
                 Mis turnos
               </button>
@@ -190,7 +194,8 @@ import { inicialesDe } from '../datos/profesionales';
       right: 0;
       top: calc(100% + 0.6rem);
       z-index: 60;
-      width: 244px;
+      /* Ancho suficiente para el carrusel, sin desbordar en pantallas chicas */
+      width: min(310px, calc(100vw - 2rem));
       background: var(--blanco);
       border: 1px solid var(--borde);
       border-radius: var(--radio);

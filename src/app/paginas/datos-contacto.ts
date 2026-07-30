@@ -13,7 +13,7 @@ type Modo = 'cuenta' | 'invitado';
   selector: 'app-datos-contacto',
   imports: [ReactiveFormsModule, Stepper, ResumenReserva],
   template: `
-    <app-stepper [paso]="2" />
+    <app-stepper [paso]="3" />
     <div class="contenedor">
       <h1>Completá tus datos</h1>
 

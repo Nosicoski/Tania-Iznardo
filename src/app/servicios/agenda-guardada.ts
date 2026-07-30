@@ -20,6 +20,21 @@ export class AgendaGuardada {
       .map((t) => ({ inicio: t.inicio, fin: t.inicio + t.duracionMin * 60000 }));
   }
 
+  /**
+   * Rangos que la propia cuenta ya tiene ocupados. El paciente es un recurso
+   * único: no puede estar en dos turnos a la vez, ni siquiera con
+   * profesionales distintos. Sin sesión no hay identidad y devuelve vacío.
+   */
+  ocupadosDePaciente(email: string | undefined): Intervalo[] {
+    if (!email) {
+      return [];
+    }
+    const buscado = email.trim().toLowerCase();
+    return this.turnos()
+      .filter((t) => t.email === buscado)
+      .map((t) => ({ inicio: t.inicio, fin: t.inicio + t.duracionMin * 60000 }));
+  }
+
   /** Turnos de una cuenta, del más próximo al más lejano. */
   turnosDe(email: string): TurnoGuardado[] {
     const buscado = email.trim().toLowerCase();
@@ -29,7 +44,18 @@ export class AgendaGuardada {
   }
 
   guardar(turno: TurnoGuardado): void {
-    const lista = [...this.turnos(), turno];
+    this.guardarVarios([turno]);
+  }
+
+  /**
+   * Guarda todos los turnos de una visita de una sola vez: una escritura y un
+   * solo update de la señal, así nunca queda una reserva múltiple a medias.
+   */
+  guardarVarios(turnos: TurnoGuardado[]): void {
+    if (!turnos.length) {
+      return;
+    }
+    const lista = [...this.turnos(), ...turnos];
     this.turnos.set(lista);
     this.escribir(lista);
   }

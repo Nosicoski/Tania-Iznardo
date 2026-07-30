@@ -1,12 +1,13 @@
 import { Component, input } from '@angular/core';
 
 /**
- * El servicio ya quedó elegido al llegar acá, así que el paso 1 es la agenda:
- * profesional, día y horario se resuelven en la misma pantalla.
+ * El paso 1 se completa en el catálogo, así que ya llega hecho a las pantallas
+ * que muestran el stepper: sirve para ubicar al usuario en el recorrido.
  */
 const PASOS = [
-  { numero: 1, etiqueta: 'Profesional · Fecha · Hora' },
-  { numero: 2, etiqueta: 'Datos de contacto' },
+  { numero: 1, etiqueta: 'Elegir servicios' },
+  { numero: 2, etiqueta: 'Reserva' },
+  { numero: 3, etiqueta: 'Datos de contacto' },
 ];
 
 @Component({

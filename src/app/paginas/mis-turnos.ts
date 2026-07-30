@@ -1,26 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Cuentas } from '../servicios/cuentas';
 import { AgendaGuardada } from '../servicios/agenda-guardada';
-import { CONSULTORIO, SERVICIOS } from '../datos/catalogo';
-import { PROFESIONALES, inicialesDe } from '../datos/profesionales';
-import { Profesional, Servicio } from '../modelos';
-import { fechaLarga, precioARS } from '../datos/formato';
-
-interface TurnoDetallado {
-  clave: string;
-  servicio: Servicio | null;
-  profesional: Profesional | null;
-  inicio: Date;
-  fin: Date;
-  duracionMin: number;
-  paciente?: string;
-  pasado: boolean;
-  /** Días que faltan; 0 es hoy. Solo tiene sentido en los próximos. */
-  faltan: number;
-}
-
-const DIA_MS = 24 * 60 * 60 * 1000;
+import { CONSULTORIO } from '../datos/catalogo';
+import { inicialesDe } from '../datos/profesionales';
+import { agruparEnVisitas, cuandoEsVisita, horaDe } from '../datos/visitas';
+import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
 
 /** Turnos de la cuenta con sesión iniciada, separados en próximos e historial. */
 @Component({
@@ -44,7 +29,7 @@ const DIA_MS = 24 * 60 * 60 * 1000;
         <div class="metricas">
           <div class="metrica">
             <b>{{ proximos().length }}</b>
-            <span>{{ proximos().length === 1 ? 'turno próximo' : 'turnos próximos' }}</span>
+            <span>{{ proximos().length === 1 ? 'visita próxima' : 'visitas próximas' }}</span>
           </div>
           <div class="metrica">
             <b>{{ pasados().length }}</b>
@@ -59,34 +44,50 @@ const DIA_MS = 24 * 60 * 60 * 1000;
         @if (proximos().length) {
           <h2 class="titulo-seccion">Próximos turnos</h2>
           <div class="lista">
-            @for (t of proximos(); track t.clave) {
+            @for (v of proximos(); track v.clave) {
               <article class="tarjeta turno">
                 <div class="turno-fecha">
-                  <span class="dia">{{ t.inicio.getDate() }}</span>
-                  <span class="mes">{{ mesCorto(t.inicio) }}</span>
+                  <span class="dia">{{ v.inicio.getDate() }}</span>
+                  <span class="mes">{{ mesCorto(v.inicio) }}</span>
                 </div>
 
                 <div class="turno-cuerpo">
                   <div class="turno-cabecera">
-                    <h3>{{ t.servicio?.nombre ?? 'Servicio' }}</h3>
-                    <span class="estado" [class.hoy]="t.faltan === 0">
-                      {{ cuandoEs(t) }}
+                    <span class="portada">
+                      <img [src]="v.imagen" alt="" aria-hidden="true" />
+                    </span>
+                    <h3>{{ v.titulo }}</h3>
+                    <span class="estado" [class.hoy]="v.faltan === 0">
+                      {{ cuandoEs(v) }}
                     </span>
                   </div>
+
+                  <!-- Visita con varios servicios: se ven los tramos en orden -->
+                  @if (v.tramos.length > 1) {
+                    <ol class="tramos">
+                      @for (t of v.tramos; track t.clave) {
+                        <li>
+                          <img class="tramo-foto" [src]="t.imagen" alt="" aria-hidden="true" />
+                          <span class="tramo-hora">{{ hora(t.inicio) }}</span>
+                          <span class="tramo-nombre">
+                            {{ t.servicio?.nombre ?? 'Servicio' }}
+                          </span>
+                          <span class="suave">
+                            {{ t.duracionMin }} min · {{ t.profesional?.nombre ?? 'A confirmar' }}
+                          </span>
+                        </li>
+                      }
+                    </ol>
+                  }
 
                   <dl class="datos">
                     <div>
                       <dt>Cuándo</dt>
-                      <dd>{{ fecha(t.inicio) }} · {{ hora(t.inicio) }} a {{ hora(t.fin) }} hs</dd>
+                      <dd>{{ fecha(v.inicio) }} · {{ hora(v.inicio) }} a {{ hora(v.fin) }} hs</dd>
                     </div>
                     <div>
-                      <dt>Profesional</dt>
-                      <dd>
-                        {{ t.profesional?.nombre ?? 'A confirmar' }}
-                        @if (t.profesional?.profesion) {
-                          <span class="suave">· {{ t.profesional?.profesion }}</span>
-                        }
-                      </dd>
+                      <dt>{{ v.tramos.length > 1 ? 'Profesionales' : 'Profesional' }}</dt>
+                      <dd>{{ v.profesionales }}</dd>
                     </div>
                     <div>
                       <dt>Dónde</dt>
@@ -94,16 +95,14 @@ const DIA_MS = 24 * 60 * 60 * 1000;
                     </div>
                     <div>
                       <dt>A nombre de</dt>
-                      <dd>{{ t.paciente ?? usuario.nombre + ' ' + usuario.apellido }}</dd>
+                      <dd>{{ v.paciente ?? usuario.nombre + ' ' + usuario.apellido }}</dd>
                     </div>
                   </dl>
 
                   <footer class="turno-pie">
-                    <span class="duracion">{{ t.duracionMin }} min</span>
-                    @if (t.servicio) {
-                      <span class="precio">{{ precio(t.servicio.precio) }}</span>
-                      <span class="pago">se abona en el consultorio</span>
-                    }
+                    <span class="duracion">{{ v.duracionMin }} min</span>
+                    <span class="precio">{{ precio(v.precio) }}</span>
+                    <span class="pago">se abona en el consultorio</span>
                   </footer>
                 </div>
               </article>
@@ -142,22 +141,23 @@ const DIA_MS = 24 * 60 * 60 * 1000;
         @if (pasados().length) {
           <h2 class="titulo-seccion">Historial</h2>
           <div class="lista historial">
-            @for (t of pasados(); track t.clave) {
+            @for (v of pasados(); track v.clave) {
               <article class="tarjeta turno pasado">
                 <div class="turno-fecha">
-                  <span class="dia">{{ t.inicio.getDate() }}</span>
-                  <span class="mes">{{ mesCorto(t.inicio) }}</span>
+                  <span class="dia">{{ v.inicio.getDate() }}</span>
+                  <span class="mes">{{ mesCorto(v.inicio) }}</span>
                 </div>
                 <div class="turno-cuerpo">
                   <div class="turno-cabecera">
-                    <h3>{{ t.servicio?.nombre ?? 'Servicio' }}</h3>
+                    <span class="portada">
+                      <img [src]="v.imagen" alt="" aria-hidden="true" />
+                    </span>
+                    <h3>{{ v.titulo }}</h3>
                     <span class="estado">Realizado</span>
                   </div>
                   <p class="linea-simple">
-                    {{ fecha(t.inicio) }} · {{ hora(t.inicio) }} hs
-                    @if (t.profesional) {
-                      · con {{ t.profesional.nombre }}
-                    }
+                    {{ fecha(v.inicio) }} · {{ hora(v.inicio) }} hs · con
+                    {{ v.profesionales }}
                   </p>
                 </div>
               </article>
@@ -320,13 +320,33 @@ const DIA_MS = 24 * 60 * 60 * 1000;
     .turno-cabecera {
       display: flex;
       align-items: flex-start;
-      justify-content: space-between;
-      gap: 0.75rem;
+      gap: 0.6rem;
       margin-bottom: 0.75rem;
     }
     .turno-cabecera h3 {
       font-size: 1rem;
       line-height: 1.3;
+      flex: 1;
+      min-width: 0;
+    }
+    /* Imagen del servicio (o del primero, si la visita tiene varios) */
+    .portada {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--primario-suave);
+      flex-shrink: 0;
+    }
+    .portada img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .pasado .portada {
+      filter: grayscale(0.55);
+      opacity: 0.85;
     }
     .estado {
       flex-shrink: 0;
@@ -343,6 +363,42 @@ const DIA_MS = 24 * 60 * 60 * 1000;
       background: var(--terciario-suave);
       border-color: transparent;
       color: var(--terciario-oscuro);
+    }
+    /* Tramos de una visita con varios servicios */
+    .tramos {
+      list-style: none;
+      margin: 0 0 0.9rem;
+      padding: 0.7rem 0.85rem;
+      background: var(--primario-suave);
+      border-radius: var(--radio-chico);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .tramos li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      font-size: 0.82rem;
+    }
+    .tramo-foto {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--blanco);
+      object-fit: cover;
+      display: block;
+      flex-shrink: 0;
+    }
+    .tramo-hora {
+      font-weight: 800;
+      color: var(--primario);
+      min-width: 3.2em;
+    }
+    .tramo-nombre {
+      font-weight: 600;
+      color: var(--secundario);
     }
     .datos {
       display: grid;
@@ -479,64 +535,36 @@ export class MisTurnos {
   protected readonly fecha = fechaLarga;
   protected readonly precio = precioARS;
 
-  private readonly turnos = computed<TurnoDetallado[]>(() => {
+  /**
+   * Los turnos agrupados por visita. Los que comparten `reservaId` se
+   * reservaron juntos y se muestran como una sola tarjeta; los viejos, sin ese
+   * campo, quedan cada uno en su propia visita.
+   */
+  private readonly visitas = computed(() => {
     const email = this.cuentas.sesion()?.email;
-    if (!email) {
-      return [];
-    }
-    const ahora = Date.now();
-    const hoy = new Date().setHours(0, 0, 0, 0);
-    return this.agenda.turnosDe(email).map((t) => {
-      const inicio = new Date(t.inicio);
-      return {
-        clave: `${t.servicioId}-${t.inicio}`,
-        servicio: SERVICIOS.find((s) => s.id === t.servicioId) ?? null,
-        profesional: PROFESIONALES.find((p) => p.id === t.profesionalId) ?? null,
-        inicio,
-        fin: new Date(t.inicio + t.duracionMin * 60000),
-        duracionMin: t.duracionMin,
-        paciente: t.paciente,
-        pasado: t.inicio + t.duracionMin * 60000 < ahora,
-        faltan: Math.round((new Date(t.inicio).setHours(0, 0, 0, 0) - hoy) / DIA_MS),
-      };
-    });
+    return email ? agruparEnVisitas(this.agenda.turnosDe(email)) : [];
   });
 
-  protected readonly proximos = computed(() => this.turnos().filter((t) => !t.pasado));
+  protected readonly proximos = computed(() => this.visitas().filter((v) => !v.pasado));
   /** El historial se lee del más reciente al más viejo. */
   protected readonly pasados = computed(() =>
-    this.turnos()
-      .filter((t) => t.pasado)
+    this.visitas()
+      .filter((v) => v.pasado)
       .reverse()
   );
 
-  /** "40 min" hasta la hora; después "2 h" o "2 h 30". */
-  protected readonly horasTotales = computed(() => {
-    const minutos = this.turnos().reduce((total, t) => total + t.duracionMin, 0);
-    if (minutos < 60) {
-      return `${minutos} min`;
-    }
-    const horas = Math.floor(minutos / 60);
-    const resto = minutos % 60;
-    return resto ? `${horas} h ${resto}` : `${horas} h`;
-  });
+  /** "40 min" hasta la hora; después "2h" o "2h 30m". */
+  protected readonly horasTotales = computed(() =>
+    duracionTexto(this.visitas().reduce((total, v) => total + v.duracionMin, 0))
+  );
 
-  protected cuandoEs(turno: TurnoDetallado): string {
-    if (turno.faltan === 0) return 'Es hoy';
-    if (turno.faltan === 1) return 'Mañana';
-    if (turno.faltan < 7) return `En ${turno.faltan} días`;
-    if (turno.faltan < 14) return 'En una semana';
-    return `En ${Math.round(turno.faltan / 7)} semanas`;
-  }
+  protected readonly cuandoEs = cuandoEsVisita;
+  protected readonly hora = horaDe;
 
   protected mesCorto(fecha: Date): string {
     return new Intl.DateTimeFormat('es-AR', { month: 'short' })
       .format(fecha)
       .replace('.', '');
-  }
-
-  protected hora(fecha: Date): string {
-    return `${fecha.getHours()}:${String(fecha.getMinutes()).padStart(2, '0')}`;
   }
 
   protected reservar(): void {

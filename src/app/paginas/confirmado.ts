@@ -1,9 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReservaStore } from '../servicios/reserva-store';
 import { CONSULTORIO } from '../datos/catalogo';
 import { Profesional } from '../modelos';
-import { conHora, fechaLarga, precioARS } from '../datos/formato';
+import { aHora, conHora, fechaLarga, precioARS } from '../datos/formato';
 
 /** Recordatorios de la demo: falta confirmarlos con el consultorio. */
 const PREPARATIVOS = [
@@ -45,35 +45,50 @@ const PREPARATIVOS = [
             />
           </svg>
         </div>
-        <h1>¡Turno confirmado!</h1>
+        <h1>{{ varios() ? '¡Visita confirmada!' : '¡Turno confirmado!' }}</h1>
         <p class="subtitulo">
           Te enviamos el detalle a tu correo y teléfono.<br />
           Recordá llegar 10 minutos antes.
         </p>
 
         <dl class="detalle">
-          @if (store.servicio(); as s) {
-            <div class="turno">
-              <dt>
-                {{ s.nombre }}
-                <span class="dur">{{ s.duracionMin }} min</span>
-                @if (store.profesionalFinal(); as p) {
-                  <span class="dur">con {{ p.nombre }} · {{ credencial(p) }}</span>
-                }
-              </dt>
+          @if (store.fecha(); as f) {
+            <div class="cuando">
+              <dt>Cuándo</dt>
               <dd>
-                {{ fecha(store.fecha()!) }}<span class="hora">{{ store.hora() }} hs</span>
+                {{ fecha(f) }}
+                <span class="hora">{{ store.hora() }} – {{ store.finBloque() }} hs</span>
               </dd>
             </div>
-            <div>
-              <dt>Dirección</dt>
-              <dd>{{ consultorio.direccion }}</dd>
-            </div>
-            <div>
-              <dt>Valor</dt>
-              <dd class="valor">{{ precio(s.precio) }} · se abona en el consultorio</dd>
+          }
+          @for (t of tramos(); track t.servicio.id; let i = $index) {
+            <div class="turno">
+              <dt>
+                @if (varios()) {
+                  <span class="orden">{{ i + 1 }}</span>
+                }
+                {{ t.servicio.nombre }}
+                <span class="dur">{{ t.duracionMin }} min</span>
+                <span class="dur">
+                  con {{ t.profesional.nombre }} · {{ credencial(t.profesional) }}
+                </span>
+              </dt>
+              <dd>
+                <span class="hora">{{ hora(t.inicioMin) }} hs</span>
+                <span class="dur">{{ precio(t.servicio.precio) }}</span>
+              </dd>
             </div>
           }
+          <div>
+            <dt>Dirección</dt>
+            <dd>{{ consultorio.direccion }}</dd>
+          </div>
+          <div>
+            <dt>Total</dt>
+            <dd class="valor">
+              {{ precio(store.total()) }} · se abona en el consultorio
+            </dd>
+          </div>
         </dl>
 
         <!-- Recordatorios mockeados: falta la lista real del consultorio -->
@@ -159,6 +174,9 @@ const PREPARATIVOS = [
       font-weight: 700;
       text-align: right;
     }
+    .cuando dd {
+      text-align: right;
+    }
     .turno {
       border-bottom: 1px solid var(--borde);
       padding-bottom: 0.7rem;
@@ -169,6 +187,20 @@ const PREPARATIVOS = [
       color: var(--secundario);
       font-weight: 700;
       text-align: left;
+    }
+    /* Número de orden dentro de la visita */
+    .orden {
+      display: inline-grid;
+      place-items: center;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: var(--primario);
+      color: var(--blanco);
+      font-size: 0.63rem;
+      font-weight: 800;
+      vertical-align: middle;
+      margin-right: 0.2rem;
     }
     .dur,
     .hora {
@@ -260,11 +292,17 @@ export class Confirmado {
   protected readonly consultorio = CONSULTORIO;
   protected readonly precio = precioARS;
   protected readonly fecha = fechaLarga;
+  protected readonly hora = aHora;
+
+  /** Los tramos de la visita, ya resueltos por el store. */
+  protected readonly tramos = computed(() => this.store.plan() ?? []);
+  protected readonly varios = computed(() => this.tramos().length > 1);
 
   protected credencial(profesional: Profesional): string {
     return profesional.matricula ?? profesional.profesion;
   }
 
+  /** Un VEVENT por servicio: así el calendario refleja la visita completa. */
   protected agregarAlCalendario(): void {
     const marca = (d: Date) =>
       d.getFullYear().toString() +
@@ -275,28 +313,32 @@ export class Confirmado {
       String(d.getMinutes()).padStart(2, '0') +
       '00';
 
-    const servicio = this.store.servicio();
     const fecha = this.store.fecha();
-    const hora = this.store.hora();
-    if (!servicio || !fecha || !hora) {
+    const tramos = this.tramos();
+    if (!fecha || !tramos.length) {
       return;
     }
-    const profesional = this.store.profesionalFinal();
-    const inicio = conHora(fecha, hora);
-    const fin = new Date(inicio.getTime() + servicio.duracionMin * 60000);
+
+    const eventos = tramos.flatMap((tramo) => {
+      const inicio = conHora(fecha, aHora(tramo.inicioMin));
+      const fin = new Date(inicio.getTime() + tramo.duracionMin * 60000);
+      return [
+        'BEGIN:VEVENT',
+        `UID:turno-${tramo.servicio.id}-${marca(inicio)}@taniaiznardoosteopatia.com`,
+        `DTSTART:${marca(inicio)}`,
+        `DTEND:${marca(fin)}`,
+        `SUMMARY:${tramo.servicio.nombre} · ${tramo.profesional.nombre}`,
+        `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
+        'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
+        'END:VEVENT',
+      ];
+    });
 
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Tania Iznardo Osteopatia//Turnos//ES',
-      'BEGIN:VEVENT',
-      `UID:turno-${servicio.id}-${marca(inicio)}@taniaiznardoosteopatia.com`,
-      `DTSTART:${marca(inicio)}`,
-      `DTEND:${marca(fin)}`,
-      `SUMMARY:${servicio.nombre}${profesional ? ' · ' + profesional.nombre : ''}`,
-      `LOCATION:${this.consultorio.direccion}, ${this.consultorio.ciudad}`,
-      'DESCRIPTION:Recordá llegar 10 minutos antes. Se abona en el consultorio.',
-      'END:VEVENT',
+      ...eventos,
       'END:VCALENDAR',
     ].join('\r\n');
 

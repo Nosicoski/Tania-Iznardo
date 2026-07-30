@@ -92,6 +92,31 @@ export function conHora(fecha: Date, hora: string): Date {
   return d;
 }
 
+/**
+ * "15:30" → 930. Los bloques de la agenda se calculan en minutos desde la
+ * medianoche: sumar duraciones es trivial y no hay Date de por medio.
+ */
+export function aMinutos(hora: string): number {
+  const [h, m] = hora.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** 930 → "15:30" (inverso de aMinutos). */
+export function aHora(minutos: number): string {
+  const h = Math.floor(minutos / 60);
+  return `${h}:${String(minutos % 60).padStart(2, '0')}`;
+}
+
+/** 110 → "1h 50m"; 45 → "45 min". Para el carrito y el resumen. */
+export function duracionTexto(minutos: number): string {
+  if (minutos < 60) {
+    return `${minutos} min`;
+  }
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return resto ? `${horas}h ${resto}m` : `${horas}h`;
+}
+
 export function mismoMes(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }

@@ -1,12 +1,22 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
-import { Profesional } from '../modelos';
-import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
+import { Profesional, Servicio } from '../modelos';
+import { aHora, duracionTexto, fechaCorta, fechaLarga, precioARS } from '../datos/formato';
+
+/** Una línea del resumen: el servicio y, si ya está resuelto, su horario. */
+interface Linea {
+  servicio: Servicio;
+  profesional: Profesional | null;
+  hora: string | null;
+  fin: string | null;
+  automatico: boolean;
+}
 
 /**
- * Panel "Tu reserva" del único turno en curso: tarjeta lateral en desktop y
- * barra fija inferior (colapsable) en mobile. En el paso de datos, la barra
- * mobile muestra además el botón de confirmación (cta).
+ * Panel "Tu reserva" de la visita en curso: tarjeta lateral en desktop y barra
+ * fija inferior (colapsable) en mobile. Lista un renglón por servicio, en el
+ * orden en que se van a hacer. En el paso de datos, la barra mobile muestra
+ * además el botón de confirmación (cta).
  */
 @Component({
   selector: 'app-resumen-reserva',
@@ -14,36 +24,55 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
     <!-- Tarjeta desktop -->
     <aside class="panel tarjeta">
       <h3 class="titulo">Tu reserva</h3>
-      @if (store.servicio(); as s) {
-        <div class="servicio">
-          <strong>{{ s.nombre }}</strong>
-          <span>
-            {{ s.duracionMin }} min ·
-            <b class="precio">{{ precio(s.precio) }}</b>
-          </span>
-          @if (store.fecha(); as f) {
+      @if (store.hayServicios()) {
+        @if (store.fecha(); as f) {
+          <p class="dia">
+            {{ fecha(f) }}
             @if (store.hora(); as h) {
-              <span class="cuando">{{ fecha(f) }} · {{ h }} hs</span>
-            } @else {
-              <span class="pendiente">Falta elegir el horario</span>
+              <b>· {{ h }} – {{ store.finBloque() }} hs</b>
             }
-          } @else {
-            <span class="pendiente">Falta elegir fecha y hora</span>
-          }
-          @if (store.profesionalFinal(); as p) {
-            <span class="con">
-              con {{ p.nombre }} · {{ credencial(p) }}
-              @if (store.profesionalAutomatico()) {
-                <i class="auto">asignado automáticamente</i>
+          </p>
+        }
+        <div class="lineas">
+          @for (l of lineas(); track l.servicio.id; let i = $index) {
+            <div class="servicio">
+              <strong>
+                @if (lineas().length > 1) {
+                  <span class="orden">{{ i + 1 }}</span>
+                }
+                {{ l.servicio.nombre }}
+              </strong>
+              <span>
+                {{ l.servicio.duracionMin }} min ·
+                <b class="precio">{{ precio(l.servicio.precio) }}</b>
+              </span>
+              @if (l.hora) {
+                <span class="cuando">{{ l.hora }} – {{ l.fin }} hs</span>
+              } @else {
+                <span class="pendiente">Falta elegir fecha y hora</span>
               }
-            </span>
-          } @else {
-            <span class="pendiente">Falta elegir profesional</span>
+              @if (l.profesional; as p) {
+                <span class="con">
+                  con {{ p.nombre }} · {{ credencial(p) }}
+                  @if (l.automatico) {
+                    <i class="auto">asignado automáticamente</i>
+                  }
+                </span>
+              } @else {
+                <span class="pendiente">Profesional a asignar</span>
+              }
+            </div>
           }
         </div>
+        @if (store.cantidad() > 1) {
+          <div class="fila">
+            <span class="clave">Duración</span>
+            <span class="valor">{{ duracion(store.duracionBloque()) }}</span>
+          </div>
+        }
         <div class="total">
           <span>Total</span>
-          <b>{{ precio(s.precio) }}</b>
+          <b>{{ precio(store.total()) }}</b>
         </div>
         @if (notaPago()) {
           <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
@@ -66,15 +95,15 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       >
         <span class="barra-info">
           <span class="barra-titulo">Tu reserva</span>
-          @if (store.servicio(); as s) {
+          @if (store.hayServicios()) {
             <span class="barra-detalle">
-              <strong>{{ s.nombre }}</strong>
+              <strong>{{ resumenCorto() }}</strong>
               @if (store.fecha(); as f) {
                 @if (store.hora(); as h) {
                   · {{ corta(f, h) }}
                 }
               }
-              · <b class="precio">{{ precio(s.precio) }}</b>
+              · <b class="precio">{{ precio(store.total()) }}</b>
             </span>
           } @else {
             <span class="barra-detalle">Elegí un servicio para comenzar</span>
@@ -82,38 +111,37 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
         </span>
         <span class="flecha" [class.girada]="abierta()">▲</span>
       </button>
-      @if (abierta()) {
-        @if (store.servicio(); as s) {
-          <div class="barra-cuerpo">
+      @if (abierta() && store.hayServicios()) {
+        <div class="barra-cuerpo">
+          @for (l of lineas(); track l.servicio.id; let i = $index) {
             <div class="fila">
               <span class="clave">
-                {{ s.nombre }}
-                @if (store.fecha(); as f) {
-                  @if (store.hora(); as h) {
-                    <span class="cuando">{{ corta(f, h) }}</span>
-                  } @else {
-                    <span class="pendiente">Falta elegir el horario</span>
-                  }
+                @if (lineas().length > 1) {
+                  <span class="orden">{{ i + 1 }}</span>
+                }
+                {{ l.servicio.nombre }}
+                @if (l.hora) {
+                  <span class="cuando">{{ l.hora }} – {{ l.fin }} hs</span>
                 } @else {
                   <span class="pendiente">Falta elegir fecha y hora</span>
                 }
-                @if (store.profesionalFinal(); as p) {
+                @if (l.profesional; as p) {
                   <span class="con">con {{ p.nombre }}</span>
                 } @else {
-                  <span class="pendiente">Falta elegir profesional</span>
+                  <span class="pendiente">Profesional a asignar</span>
                 }
               </span>
-              <span class="valor">{{ precio(s.precio) }}</span>
+              <span class="valor">{{ precio(l.servicio.precio) }}</span>
             </div>
-            <div class="fila">
-              <span class="clave">Total</span>
-              <span class="valor precio">{{ precio(s.precio) }}</span>
-            </div>
-            @if (notaPago()) {
-              <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
-            }
+          }
+          <div class="fila">
+            <span class="clave">Total · {{ duracion(store.duracionBloque()) }}</span>
+            <span class="valor precio">{{ precio(store.total()) }}</span>
           </div>
-        }
+          @if (notaPago()) {
+            <div class="nota">Se abona en el consultorio. No se requiere pago online.</div>
+          }
+        </div>
       }
       @if (cta()) {
         <div class="barra-cta">
@@ -148,6 +176,21 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       font-size: 0.85rem;
       margin-bottom: 1rem;
     }
+    /* Día de la visita: una sola vez arriba, no en cada renglón */
+    .dia {
+      margin: 0 0 0.75rem;
+      font-size: 0.82rem;
+      color: var(--neutro);
+    }
+    .dia b {
+      color: var(--primario);
+    }
+    .lineas {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.9rem;
+    }
     .servicio {
       background: var(--primario-suave);
       border-radius: var(--radio-chico);
@@ -155,8 +198,27 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
-      margin-bottom: 0.9rem;
       font-size: 0.9rem;
+    }
+    .servicio strong {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+      line-height: 1.3;
+    }
+    /* Número de orden dentro de la visita */
+    .orden {
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: var(--primario);
+      color: var(--blanco);
+      font-size: 0.63rem;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
     }
     .servicio span {
       color: var(--neutro);
@@ -303,6 +365,11 @@ import { fechaCorta, fechaLarga, precioARS } from '../datos/formato';
       .barra-cuerpo .valor {
         white-space: nowrap;
       }
+      .barra-cuerpo .orden {
+        display: inline-grid;
+        vertical-align: middle;
+        margin: 0 0.15rem 0 0;
+      }
       .barra-cta {
         margin-top: 0.6rem;
       }
@@ -321,6 +388,32 @@ export class ResumenReserva {
   protected readonly store = inject(ReservaStore);
   protected readonly abierta = signal(false);
 
+  /** Con el bloque resuelto manda el plan; si no, el carrito sin horarios. */
+  protected readonly lineas = computed<Linea[]>(() => {
+    const plan = this.store.plan();
+    if (plan) {
+      return plan.map((t) => ({
+        servicio: t.servicio,
+        profesional: t.profesional,
+        hora: aHora(t.inicioMin),
+        fin: aHora(t.inicioMin + t.duracionMin),
+        automatico: t.automatico,
+      }));
+    }
+    return this.store.carrito().map((servicio) => ({
+      servicio,
+      profesional: null,
+      hora: null,
+      fin: null,
+      automatico: false,
+    }));
+  });
+
+  protected readonly resumenCorto = computed(() => {
+    const lista = this.store.carrito();
+    return lista.length === 1 ? lista[0].nombre : `${lista.length} servicios`;
+  });
+
   protected credencial(profesional: Profesional): string {
     return profesional.matricula ?? profesional.profesion;
   }
@@ -335,4 +428,5 @@ export class ResumenReserva {
   protected precio = precioARS;
   protected fecha = fechaLarga;
   protected corta = fechaCorta;
+  protected duracion = duracionTexto;
 }
