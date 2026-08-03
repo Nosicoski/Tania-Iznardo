@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { BASE_WEBP, NavegacionReserva } from '../servicios/navegacion-reserva';
 import { CONSULTORIO } from '../datos/catalogo';
 import { Cuentas } from '../servicios/cuentas';
 import { inicialesDe } from '../datos/profesionales';
@@ -71,6 +72,12 @@ import { CarruselTurnos } from './carrusel-turnos';
               <app-carrusel-turnos />
               <button type="button" class="menu-item" role="menuitem" (click)="irAMisTurnos()">
                 Mis turnos
+              </button>
+              <!-- Vista previa de cómo se ve el reservador embebido en el sitio
+                   de un negocio. No se enlaza en ningún otro lado. -->
+              <button type="button" class="menu-item demo" role="menuitem" (click)="irALanding()">
+                Ver web de muestra
+                <span class="insignia">demo</span>
               </button>
               <button type="button" class="menu-item salir" role="menuitem" (click)="salir()">
                 Cerrar sesión
@@ -250,6 +257,23 @@ import { CarruselTurnos } from './carrusel-turnos';
       background: rgba(179, 57, 47, 0.1);
       color: #b3392f;
     }
+    .demo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .insignia {
+      flex-shrink: 0;
+      padding: 0.1rem 0.42rem;
+      border-radius: 999px;
+      background: var(--terciario-suave);
+      color: var(--terciario-oscuro);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
 
     @media (max-width: 720px) {
       .cabecera {
@@ -272,6 +296,7 @@ import { CarruselTurnos } from './carrusel-turnos';
 })
 export class Encabezado {
   protected readonly cuentas = inject(Cuentas);
+  private readonly navegacion = inject(NavegacionReserva);
   private readonly router = inject(Router);
 
   protected readonly consultorio = CONSULTORIO;
@@ -285,16 +310,21 @@ export class Encabezado {
 
   protected irAMisTurnos(): void {
     this.menu.set(false);
-    this.router.navigate(['/mis-turnos']);
+    this.navegacion.ir('mis-turnos');
   }
 
   protected irAlInicio(): void {
-    this.router.navigate(['/servicio']);
+    this.navegacion.ir('servicio');
+  }
+
+  protected irALanding(): void {
+    this.menu.set(false);
+    this.router.navigateByUrl(BASE_WEBP);
   }
 
   protected salir(): void {
     this.menu.set(false);
     this.cuentas.cerrarSesion();
-    this.router.navigate(['/servicio']);
+    this.navegacion.ir('servicio');
   }
 }

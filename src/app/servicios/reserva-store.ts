@@ -2,12 +2,28 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { DatosContacto, Servicio, Tramo, TurnoGuardado } from '../modelos';
 import { aHora, conHora } from '../datos/formato';
 import { esCombinable } from '../datos/catalogo';
-import { Consulta } from './disponibilidad';
+import { Consulta, Disponibilidad, PlanInvalido } from './disponibilidad';
 import { AgendaGuardada } from './agenda-guardada';
 import { Cuentas } from './cuentas';
 
 /** Máximo de servicios en una misma visita. */
 export const TOPE_SERVICIOS = 3;
+
+/** Por qué no se pudo cerrar la visita. Define el mensaje que ve el paciente. */
+export type FalloConfirmacion =
+  /** Se intentó confirmar dos veces la misma visita (atrás del navegador, doble clic). */
+  | 'ya-confirmada'
+  /** No hay bloque elegido: hay que volver a la agenda. */
+  | 'sin-plan'
+  | PlanInvalido;
+
+export type ResultadoConfirmacion = { ok: true } | { ok: false; motivo: FalloConfirmacion };
+
+/** El mail identifica al paciente, así que se compara siempre normalizado. */
+function normalizarEmail(email: string | null | undefined): string | null {
+  const limpio = email?.trim().toLowerCase();
+  return limpio ? limpio : null;
+}
 
 /** Por qué un servicio no se puede sumar a la visita en curso. */
 export type Impedimento =
@@ -28,6 +44,7 @@ export type Impedimento =
 export class ReservaStore {
   private readonly agenda = inject(AgendaGuardada);
   private readonly cuentas = inject(Cuentas);
+  private readonly disponibilidad = inject(Disponibilidad);
 
   /** Servicios de la visita. El orden es el orden pretendido del bloque. */
   readonly carrito = signal<Servicio[]>([]);
@@ -43,15 +60,35 @@ export class ReservaStore {
   readonly plan = signal<Tramo[] | null>(null);
   readonly datos = signal<DatosContacto | null>(null);
   readonly confirmada = signal(false);
+  /**
+   * Id de la visita recién confirmada. Lo usa la pantalla de confirmación para
+   * adjuntarla a la cuenta si el paciente se registra ahí mismo.
+   */
+  readonly ultimaReserva = signal<string | null>(null);
+  /**
+   * Mail de quien está reservando cuando no hay sesión. Lo carga el paso de
+   * datos: a partir de ahí el invitado es una identidad igual que un usuario
+   * con cuenta y sus propios turnos le bloquean horarios. Sobrevive a
+   * `reiniciar()` a propósito: si vuelve a reservar en la misma visita al
+   * sitio, seguimos sabiendo quién es.
+   */
+  readonly identidad = signal<string | null>(null);
+
+  /**
+   * Quién reserva: la cuenta con sesión y, si no hay, el mail que cargó el
+   * invitado. Es lo que impide que la misma persona quede en dos turnos
+   * superpuestos, tenga cuenta o no.
+   */
+  readonly emailPaciente = computed(
+    () => normalizarEmail(this.cuentas.sesion()?.email) ?? this.identidad(),
+  );
 
   readonly hayServicios = computed(() => this.carrito().length > 0);
   readonly cantidad = computed(() => this.carrito().length);
-  readonly total = computed(() =>
-    this.carrito().reduce((suma, s) => suma + s.precio, 0)
-  );
+  readonly total = computed(() => this.carrito().reduce((suma, s) => suma + s.precio, 0));
   /** Suma de los servicios, sin las transiciones (todavía no hay plan). */
   readonly duracionServicios = computed(() =>
-    this.carrito().reduce((suma, s) => suma + s.duracionMin, 0)
+    this.carrito().reduce((suma, s) => suma + s.duracionMin, 0),
   );
   /** Duración real del bloque, transiciones incluidas. Cae a la suma si no hay plan. */
   readonly duracionBloque = computed(() => {
@@ -82,7 +119,7 @@ export class ReservaStore {
     servicios: this.carrito(),
     preferidos: this.preferidos(),
     ordenFijo: this.ordenManual(),
-    email: this.cuentas.sesion()?.email,
+    email: this.emailPaciente() ?? undefined,
   }));
 
   // --- Carrito ------------------------------------------------------------
@@ -200,17 +237,58 @@ export class ReservaStore {
 
   // --- Confirmación -------------------------------------------------------
 
-  /** Confirma la visita y persiste sus turnos para que esas franjas se ocupen. */
-  confirmar(datos: DatosContacto): void {
+  /** Deja registrado quién reserva cuando no hay sesión iniciada. */
+  identificar(email: string): void {
+    this.identidad.set(normalizarEmail(email));
+  }
+
+  /**
+   * ¿El bloque elegido se puede confirmar ahora mismo? Revalida contra la
+   * agenda real sin guardar nada, para que el paso de datos no cree la cuenta
+   * de alguien cuyo turno ya no está disponible. null = adelante.
+   */
+  revisar(): FalloConfirmacion | null {
+    if (this.confirmada()) {
+      return 'ya-confirmada';
+    }
     const plan = this.plan();
     const fecha = this.fecha();
     if (!plan?.length || !fecha) {
-      return;
+      return 'sin-plan';
     }
+    return this.disponibilidad.validarPlan(plan, fecha, this.emailPaciente() ?? undefined);
+  }
+
+  /**
+   * Confirma la visita y persiste sus turnos para que esas franjas se ocupen.
+   * Revalida antes de escribir: el plan se armó minutos atrás y en el medio la
+   * franja pudo ocuparse o pudo pasar la hora. Si algo falla no guarda nada y
+   * suelta el horario para que el paciente elija otro.
+   */
+  confirmar(datos: DatosContacto): ResultadoConfirmacion {
+    this.identificar(datos.email);
+    const fallo = this.revisar();
+    if (fallo) {
+      // 'ya-confirmada' no toca nada: la visita buena ya está guardada.
+      if (fallo !== 'ya-confirmada') {
+        this.soltarBloque();
+      }
+      return { ok: false, motivo: fallo };
+    }
+    // revisar() ya garantizó que están; el chequeo es para el compilador.
+    const plan = this.plan();
+    const fecha = this.fecha();
+    if (!plan?.length || !fecha) {
+      return { ok: false, motivo: 'sin-plan' };
+    }
+
     this.datos.set(datos);
     this.confirmada.set(true);
     const reservaId = nuevoReservaId();
-    const email = this.cuentas.sesion()?.email;
+    this.ultimaReserva.set(reservaId);
+    // Siempre queda el mail: sin él un turno de invitado no tendría contacto
+    // ni podría bloquearle a esa persona otro turno superpuesto.
+    const email = this.emailPaciente() ?? undefined;
     const paciente = `${datos.nombre} ${datos.apellido}`.trim();
     this.agenda.guardarVarios(
       plan.map<TurnoGuardado>((tramo) => ({
@@ -218,18 +296,21 @@ export class ReservaStore {
         profesionalId: tramo.profesional.id,
         inicio: conHora(fecha, aHora(tramo.inicioMin)).getTime(),
         duracionMin: tramo.duracionMin,
-        // Con sesión iniciada la visita queda en "Mis turnos" de esa cuenta.
+        // Si esa cuenta existe (o se crea después), la visita aparece en
+        // "Mis turnos" sola.
         email,
         paciente,
         reservaId,
-      }))
+      })),
     );
+    return { ok: true };
   }
 
   reiniciar(): void {
     this.vaciar();
     this.fecha.set(null);
     this.datos.set(null);
+    this.ultimaReserva.set(null);
   }
 
   /** Cualquier cambio en la visita invalida el horario ya elegido. */

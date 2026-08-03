@@ -4,8 +4,9 @@
     {
       "name": "reservador",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["ng", "serve", "--port", "4300"],
-      "port": 4300
+      "runtimeArgs": ["ng", "serve"],
+      "port": 4300,
+      "autoPort": true
     }
   ]
 }

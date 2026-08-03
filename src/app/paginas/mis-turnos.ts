@@ -1,8 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavegacionReserva } from '../servicios/navegacion-reserva';
+import { Negocio } from '../servicios/negocio';
 import { Cuentas } from '../servicios/cuentas';
 import { AgendaGuardada } from '../servicios/agenda-guardada';
-import { CONSULTORIO } from '../datos/catalogo';
 import { inicialesDe } from '../datos/profesionales';
 import { agruparEnVisitas, cuandoEsVisita, horaDe } from '../datos/visitas';
 import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
@@ -91,7 +91,7 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
                     </div>
                     <div>
                       <dt>Dónde</dt>
-                      <dd>{{ consultorio.direccion }} · {{ consultorio.ciudad }}</dd>
+                      <dd>{{ negocio().direccion }} · {{ negocio().ciudad }}</dd>
                     </div>
                     <div>
                       <dt>A nombre de</dt>
@@ -528,9 +528,10 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
 export class MisTurnos {
   protected readonly cuentas = inject(Cuentas);
   private readonly agenda = inject(AgendaGuardada);
-  private readonly router = inject(Router);
+  private readonly navegacion = inject(NavegacionReserva);
 
-  protected readonly consultorio = CONSULTORIO;
+  /** Dueño de la agenda: el consultorio, o el negocio que embebe el flujo. */
+  protected readonly negocio = inject(Negocio).datos;
   protected readonly iniciales = inicialesDe;
   protected readonly fecha = fechaLarga;
   protected readonly precio = precioARS;
@@ -568,6 +569,6 @@ export class MisTurnos {
   }
 
   protected reservar(): void {
-    this.router.navigate(['/servicio']);
+    this.navegacion.ir('servicio');
   }
 }

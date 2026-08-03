@@ -29,6 +29,12 @@ export class Cuentas {
   private readonly emailActivo = signal<string | null>(this.leerSesion());
   /** Qué popup de cuenta está abierto (lo abren el header y el paso de datos). */
   readonly modal = signal<ModalCuenta>(null);
+  /**
+   * Datos con los que abrir el alta ya completada. Los pone la pantalla de
+   * turno confirmado con lo que el paciente acaba de cargar, así crear la
+   * cuenta es solo elegir una contraseña.
+   */
+  readonly prellenado = signal<Cuenta | null>(null);
 
   readonly sesion = computed<Cuenta | null>(() => {
     const email = this.emailActivo();
@@ -37,12 +43,14 @@ export class Cuentas {
   });
   readonly haySesion = computed(() => this.sesion() !== null);
 
-  abrir(modal: Exclude<ModalCuenta, null>): void {
+  abrir(modal: Exclude<ModalCuenta, null>, datos?: Cuenta): void {
+    this.prellenado.set(datos ?? null);
     this.modal.set(modal);
   }
 
   cerrarModal(): void {
     this.modal.set(null);
+    this.prellenado.set(null);
   }
 
   /** Devuelve el mensaje de error, o null si la cuenta se creó. */
@@ -79,6 +87,7 @@ export class Cuentas {
     this.emailActivo.set(email);
     this.escribir(CLAVE_SESION, email);
     this.modal.set(null);
+    this.prellenado.set(null);
   }
 
   private sinHuella(cuenta: CuentaGuardada): Cuenta {

@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavegacionReserva } from '../servicios/navegacion-reserva';
 import { ReservaStore, TOPE_SERVICIOS } from '../servicios/reserva-store';
 import { duracionTexto, precioARS } from '../datos/formato';
 
@@ -427,7 +427,7 @@ import { duracionTexto, precioARS } from '../datos/formato';
 })
 export class CarritoFlotante {
   protected readonly store = inject(ReservaStore);
-  private readonly router = inject(Router);
+  private readonly navegacion = inject(NavegacionReserva);
   protected readonly precio = precioARS;
   protected readonly duracion = duracionTexto;
   protected readonly tope = TOPE_SERVICIOS;
@@ -449,6 +449,6 @@ export class CarritoFlotante {
 
   protected agendar(): void {
     this.abierto.set(false);
-    this.router.navigate(['/agendar']);
+    this.navegacion.ir('agendar');
   }
 }

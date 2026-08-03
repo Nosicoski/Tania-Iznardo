@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   NonNullableFormBuilder,
@@ -6,7 +6,7 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { Cuentas } from '../servicios/cuentas';
+import { Cuenta, Cuentas } from '../servicios/cuentas';
 
 /** Lo que gana el usuario al registrarse; se muestra solo en el alta. */
 const BENEFICIOS = [
@@ -16,6 +16,10 @@ const BENEFICIOS = [
 ];
 
 const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
+
+/** Autorrelleno: separación entre campos y cuánto dura el destello. */
+const PASO_MS = 110;
+const DESTELLO_MS = 620;
 
 /**
  * Popup de cuenta: inicia sesión o registra, según lo que pida `Cuentas.modal`.
@@ -98,7 +102,7 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
               <div class="par">
                 <label class="campo">
                   <span class="etiqueta">Nombre</span>
-                  <span class="control">
+                  <span class="control" [class.relleno]="rellenando('nombre')">
                     <span class="icono" aria-hidden="true">
                       <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
                         <circle cx="10" cy="7" r="2.8" stroke="currentColor" stroke-width="1.5" />
@@ -118,7 +122,7 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
                 </label>
                 <label class="campo">
                   <span class="etiqueta">Apellido</span>
-                  <span class="control">
+                  <span class="control" [class.relleno]="rellenando('apellido')">
                     <input type="text" formControlName="apellido" placeholder="García" />
                   </span>
                   @if (invalido('apellido')) {
@@ -130,7 +134,7 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
 
             <label class="campo">
               <span class="etiqueta">Email</span>
-              <span class="control">
+              <span class="control" [class.relleno]="rellenando('email')">
                 <span class="icono" aria-hidden="true">
                   <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
                     <rect
@@ -163,21 +167,37 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
             </label>
 
             @if (!esLogin()) {
-              <label class="campo">
-                <span class="etiqueta">Teléfono</span>
-                <span class="control">
-                  <span class="prefijo">+54</span>
-                  <input
-                    type="tel"
-                    formControlName="telefono"
-                    placeholder="3511234567"
-                    inputmode="numeric"
-                  />
-                </span>
-                @if (invalido('telefono')) {
-                  <span class="error" role="alert">Solo números, sin el 0 y sin el 15.</span>
-                }
-              </label>
+              <div class="par">
+                <label class="campo">
+                  <span class="etiqueta">Teléfono</span>
+                  <span class="control" [class.relleno]="rellenando('telefono')">
+                    <span class="prefijo">+54</span>
+                    <input
+                      type="tel"
+                      formControlName="telefono"
+                      placeholder="3511234567"
+                      inputmode="numeric"
+                    />
+                  </span>
+                  @if (invalido('telefono')) {
+                    <span class="error" role="alert">Solo números, sin el 0 y sin el 15.</span>
+                  }
+                </label>
+                <label class="campo">
+                  <span class="etiqueta">DNI</span>
+                  <span class="control" [class.relleno]="rellenando('dni')">
+                    <input
+                      type="text"
+                      formControlName="dni"
+                      placeholder="30123456"
+                      inputmode="numeric"
+                    />
+                  </span>
+                  @if (invalido('dni')) {
+                    <span class="error" role="alert">7 u 8 números, sin puntos.</span>
+                  }
+                </label>
+              </div>
             }
 
             <label class="campo">
@@ -396,7 +416,7 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
     .fondo {
       position: fixed;
       inset: 0;
-      z-index: 70;
+      z-index: 120;
       background: rgba(22, 48, 47, 0.55);
       backdrop-filter: blur(3px);
       display: grid;
@@ -547,6 +567,36 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
     }
     .control:focus-within {
       border-color: var(--primario);
+    }
+    /*
+     * Autorrelleno: el campo se enciende y se apaga solo. Anima únicamente
+     * color de fondo y borde, así el navegador no rehace layout en ningún
+     * frame y los cinco destellos encadenados salen parejos.
+     */
+    .control.relleno {
+      animation: destello 0.62s ease-out;
+    }
+    @keyframes destello {
+      0% {
+        background: var(--primario-suave);
+        border-color: var(--primario);
+        box-shadow: 0 0 0 4px rgba(52, 129, 126, 0.16);
+      }
+      70% {
+        background: var(--primario-suave);
+        border-color: var(--primario);
+        box-shadow: 0 0 0 4px rgba(52, 129, 126, 0);
+      }
+      100% {
+        background: var(--blanco);
+        border-color: var(--borde);
+        box-shadow: none;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .control.relleno {
+        animation: none;
+      }
     }
     .icono {
       color: var(--neutro-claro);
@@ -738,9 +788,14 @@ export class ModalCuenta {
     apellido: [''],
     email: ['', [Validators.required, Validators.email]],
     telefono: [''],
+    dni: [''],
     clave: ['', [Validators.required, Validators.minLength(6)]],
     confirmacion: [''],
   });
+
+  /** Campos que están destellando por el autorrelleno. */
+  private readonly recienRellenados = signal<readonly string[]>([]);
+  private temporizadores: ReturnType<typeof setTimeout>[] = [];
 
   private readonly claveEscrita = signal('');
   private readonly confirmacionEscrita = signal('');
@@ -777,6 +832,15 @@ export class ModalCuenta {
         this.ajustarValidaciones(modo === 'registro');
       }
     });
+    // Alta abierta desde el turno confirmado: los datos ya cargados se
+    // completan solos, en cascada, para que se vea de dónde salen.
+    effect(() => {
+      const datos = this.cuentas.prellenado();
+      if (this.cuentas.modal() === 'registro' && datos) {
+        this.autocompletar(datos);
+      }
+    });
+    inject(DestroyRef).onDestroy(() => this.limpiarTemporizadores());
     this.formulario.valueChanges.subscribe(() => this.error.set(null));
     // Espejo en signals de lo tipeado, para el medidor y el check de coincidencia.
     this.formulario.controls.clave.valueChanges.subscribe((valor) => {
@@ -803,13 +867,69 @@ export class ModalCuenta {
     return !!control && control.invalid && control.touched;
   }
 
+  protected rellenando(campo: string): boolean {
+    return this.recienRellenados().includes(campo);
+  }
+
   protected cerrar(): void {
     this.error.set(null);
     this.pedirAyuda.set(false);
     this.verClave.set(false);
     this.verConfirmacion.set(false);
+    this.limpiarTemporizadores();
     this.formulario.reset();
     this.cuentas.cerrarModal();
+  }
+
+  /**
+   * Completa los datos que ya cargó el paciente, de a un campo por vez con un
+   * destello que se apaga solo. La animación es puro color: no toca layout.
+   */
+  private autocompletar(datos: Cuenta): void {
+    this.limpiarTemporizadores();
+    const valores: [string, string][] = [
+      ['nombre', datos.nombre],
+      ['apellido', datos.apellido],
+      ['email', datos.email],
+      ['telefono', datos.telefono],
+      ['dni', datos.dni ?? ''],
+    ];
+
+    if (this.sinAnimacion()) {
+      valores.forEach(([campo, valor]) => this.formulario.get(campo)?.setValue(valor));
+      return;
+    }
+
+    valores.forEach(([campo, valor], i) => {
+      this.temporizadores.push(
+        setTimeout(() => {
+          this.formulario.get(campo)?.setValue(valor);
+          this.recienRellenados.update((lista) => [...lista, campo]);
+          this.temporizadores.push(
+            setTimeout(
+              () =>
+                this.recienRellenados.update((lista) =>
+                  lista.filter((c) => c !== campo)
+                ),
+              DESTELLO_MS
+            )
+          );
+        }, i * PASO_MS)
+      );
+    });
+  }
+
+  private sinAnimacion(): boolean {
+    return (
+      typeof matchMedia !== 'undefined' &&
+      matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+
+  private limpiarTemporizadores(): void {
+    this.temporizadores.forEach(clearTimeout);
+    this.temporizadores = [];
+    this.recienRellenados.set([]);
   }
 
   protected enviar(): void {
@@ -827,6 +947,7 @@ export class ModalCuenta {
             apellido: v.apellido,
             email: v.email,
             telefono: v.telefono,
+            dni: v.dni || undefined,
           },
           v.clave
         );
@@ -852,6 +973,10 @@ export class ModalCuenta {
       registro ? [Validators.required, Validators.pattern(/^\d{8,12}$/)] : []
     );
     telefono.updateValueAndValidity({ emitEvent: false });
+
+    const dni = this.formulario.controls.dni;
+    dni.setValidators(registro ? [Validators.required, Validators.pattern(/^\d{7,8}$/)] : []);
+    dni.updateValueAndValidity({ emitEvent: false });
 
     const confirmacion = this.formulario.controls.confirmacion;
     confirmacion.setValidators(registro ? [Validators.required, this.igualAClave] : []);

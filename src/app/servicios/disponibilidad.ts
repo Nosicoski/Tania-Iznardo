@@ -47,6 +47,13 @@ export interface Consulta {
   email?: string;
 }
 
+/**
+ * Por qué un bloque ya elegido dejó de servir. Entre que el paciente toca la
+ * hora y confirma pueden pasar minutos: en ese rato la franja pudo ocuparse o
+ * simplemente pudo pasar la hora.
+ */
+export type PlanInvalido = 'vencido' | 'ocupado' | 'paciente-ocupado';
+
 /** Por qué un día no ofrece horarios. Define el mensaje que ve el usuario. */
 export type MotivoSinCupo =
   | 'sin-servicios'
@@ -147,9 +154,7 @@ export class Disponibilidad {
    */
   planDe(consulta: Consulta, fecha: Date, hora: string): Tramo[] | null {
     const minuto = aMinutos(hora);
-    const franja = FRANJAS.find(
-      (f) => minuto >= aMinutos(f.desde) && minuto < aMinutos(f.hasta)
-    );
+    const franja = FRANJAS.find((f) => minuto >= aMinutos(f.desde) && minuto < aMinutos(f.hasta));
     if (!franja || !consulta.servicios.length || !this.esReservable(fecha)) {
       return null;
     }
@@ -158,8 +163,38 @@ export class Disponibilidad {
       this.contexto(consulta, fecha),
       fecha,
       aMinutos(franja.hasta),
-      minuto
+      minuto,
     );
+  }
+
+  /**
+   * Último control antes de guardar: revalida un bloque ya elegido contra la
+   * agenda de este momento. Solo mira los turnos confirmados (la agenda
+   * simulada es determinística: si el plan entraba, sigue entrando) y la
+   * ocupación del propio paciente. null = el plan se puede confirmar.
+   */
+  validarPlan(plan: Tramo[], fecha: Date, email?: string): PlanInvalido | null {
+    if (!plan.length) {
+      return 'vencido';
+    }
+    // Contra lo último guardado, no contra lo que teníamos en memoria.
+    this.agenda.sincronizar();
+    const propios = this.agenda.ocupadosDePaciente(email);
+    for (const tramo of plan) {
+      const inicio = conHora(fecha, aHora(tramo.inicioMin)).getTime();
+      const fin = inicio + tramo.duracionMin * 60000;
+      if (inicio < Date.now()) {
+        return 'vencido';
+      }
+      if (!libre(inicio, fin, this.agenda.ocupadosDe(tramo.profesional.id))) {
+        return 'ocupado';
+      }
+      // El paciente no puede estar en dos lugares a la vez, tenga cuenta o no.
+      if (!libre(inicio, fin, propios)) {
+        return 'paciente-ocupado';
+      }
+    }
+    return null;
   }
 
   /**
@@ -172,9 +207,9 @@ export class Disponibilidad {
       consulta.servicios.every((s) => {
         const fijado = consulta.preferidos[s.id];
         return profesionalesPara(s.id).some(
-          (p) => (!fijado || p.id === fijado) && p.dias.includes(dia)
+          (p) => (!fijado || p.id === fijado) && p.dias.includes(dia),
         );
-      })
+      }),
     );
   }
 
@@ -185,9 +220,7 @@ export class Disponibilidad {
   fijadosQueNoAtienden(consulta: Consulta, fecha: Date): Profesional[] {
     const dia = fecha.getDay();
     const ids = new Set(
-      consulta.servicios
-        .map((s) => consulta.preferidos[s.id])
-        .filter((id): id is string => !!id)
+      consulta.servicios.map((s) => consulta.preferidos[s.id]).filter((id): id is string => !!id),
     );
     return [...ids]
       .map((id) => PROFESIONALES.find((p) => p.id === id))
@@ -207,9 +240,7 @@ export class Disponibilidad {
     if (!dias.length) {
       return 'sin-dia-comun';
     }
-    const franjaMasLarga = Math.max(
-      ...FRANJAS.map((f) => aMinutos(f.hasta) - aMinutos(f.desde))
-    );
+    const franjaMasLarga = Math.max(...FRANJAS.map((f) => aMinutos(f.hasta) - aMinutos(f.desde)));
     if (this.duracionMinima(servicios) > franjaMasLarga) {
       return 'no-entra';
     }
@@ -238,7 +269,7 @@ export class Disponibilidad {
     contexto: Contexto,
     fecha: Date,
     cierre: number,
-    inicio: number
+    inicio: number,
   ): Tramo[] | null {
     for (const orden of ordenes) {
       const plan = this.resolver(orden, contexto, fecha, cierre, 0, inicio, null, []);
@@ -263,7 +294,7 @@ export class Disponibilidad {
     indice: number,
     reloj: number,
     anterior: Profesional | null,
-    acumulado: Tramo[]
+    acumulado: Tramo[],
   ): Tramo[] | null {
     if (indice === orden.length) {
       return acumulado;
@@ -294,16 +325,10 @@ export class Disponibilidad {
         duracionMin: servicio.duracionMin,
         automatico: !this.fijado(contexto, servicio),
       };
-      const resto = this.resolver(
-        orden,
-        contexto,
-        fecha,
-        cierre,
-        indice + 1,
-        finMin,
-        profesional,
-        [...acumulado, tramo]
-      );
+      const resto = this.resolver(orden, contexto, fecha, cierre, indice + 1, finMin, profesional, [
+        ...acumulado,
+        tramo,
+      ]);
       if (resto) {
         return resto;
       }
@@ -316,18 +341,16 @@ export class Disponibilidad {
     servicio: Servicio,
     contexto: Contexto,
     fecha: Date,
-    anterior: Profesional | null
+    anterior: Profesional | null,
   ): Profesional[] {
     const fijado = contexto.preferidos[servicio.id];
     const lista = profesionalesPara(servicio.id).filter(
-      (p) => this.atiende(p, fecha) && (!fijado || p.id === fijado)
+      (p) => this.atiende(p, fecha) && (!fijado || p.id === fijado),
     );
     if (!anterior) {
       return lista;
     }
-    return [...lista].sort(
-      (a, b) => Number(b.id === anterior.id) - Number(a.id === anterior.id)
-    );
+    return [...lista].sort((a, b) => Number(b.id === anterior.id) - Number(a.id === anterior.id));
   }
 
   private fijado(contexto: Contexto, servicio: Servicio): boolean {
@@ -365,8 +388,7 @@ export class Disponibilidad {
     if (cacheado) {
       return cacheado;
     }
-    const semilla =
-      fecha.getFullYear() * 10000 + (fecha.getMonth() + 1) * 100 + fecha.getDate();
+    const semilla = fecha.getFullYear() * 10000 + (fecha.getMonth() + 1) * 100 + fecha.getDate();
     const propio = [...profesional.id].reduce((total, c) => total + c.charCodeAt(0), 0);
     const intervalos: Intervalo[] = [];
     let indice = 0;

@@ -1,4 +1,6 @@
-<app-encabezado />
+@if (!navegacion.embebido()) {
+  <app-encabezado />
+}
 <main>
   <router-outlet />
 </main>

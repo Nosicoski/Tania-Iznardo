@@ -220,7 +220,12 @@ interface Linea {
       flex-shrink: 0;
       margin-top: 0.15rem;
     }
-    .servicio span {
+    /*
+     * Solo los renglones de datos, que son hijos directos: si alcanzara a
+     * cualquier span le pisaría el blanco al número de orden, que va dentro
+     * del strong del título.
+     */
+    .servicio > span {
       color: var(--neutro);
       font-size: 0.82rem;
     }

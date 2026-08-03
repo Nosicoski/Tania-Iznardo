@@ -1,12 +1,6 @@
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
-import {
-  CdkDrag,
-  CdkDragDrop,
-  CdkDragHandle,
-  CdkDragPlaceholder,
-  CdkDropList,
-} from '@angular/cdk/drag-drop';
+import { NavegacionReserva } from '../servicios/navegacion-reserva';
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { Stepper } from '../componentes/stepper';
 import { ResumenReserva } from '../componentes/resumen-reserva';
 import { Calendario } from '../componentes/calendario';
@@ -33,15 +27,7 @@ interface Chip {
  */
 @Component({
   selector: 'app-agendar',
-  imports: [
-    Stepper,
-    ResumenReserva,
-    Calendario,
-    CdkDropList,
-    CdkDrag,
-    CdkDragHandle,
-    CdkDragPlaceholder,
-  ],
+  imports: [Stepper, ResumenReserva, Calendario, CdkDropList, CdkDrag, CdkDragHandle],
   template: `
     <app-stepper [paso]="2" />
     <div class="contenedor">
@@ -70,9 +56,18 @@ interface Chip {
               (cdkDropListDropped)="soltarTramo($event)"
             >
               @for (t of tramosVista(); track t.servicio.id; let i = $index; let ultimo = $last) {
-                <li class="tramo" [class.resuelto]="!!t.hora" cdkDrag [cdkDragLockAxis]="'y'">
-                  <!-- Fantasma que queda en el hueco mientras se arrastra -->
-                  <div class="hueco" *cdkDragPlaceholder></div>
+                <!--
+                  Sin placeholder propio: el que clona el CDK mide exactamente lo
+                  mismo que la tarjeta, así la lista no cambia de alto al levantarla.
+                -->
+                <li
+                  class="tramo"
+                  [class.resuelto]="!!t.hora"
+                  cdkDrag
+                  [cdkDragLockAxis]="'y'"
+                  [cdkDragStartDelay]="retardoArrastre"
+                  cdkDragBoundary=".tramos"
+                >
                   @if (store.cantidad() > 1) {
                     <span class="agarre" cdkDragHandle aria-hidden="true" title="Arrastrá para reordenar">
                       <svg viewBox="0 0 12 16" width="10" height="13" fill="currentColor">
@@ -197,20 +192,6 @@ interface Chip {
                 </li>
               }
             </ol>
-
-            @if (store.cantidad() > 1) {
-              <p class="nota-orden">
-                @if (store.ordenManual()) {
-                  Estás usando tu propio orden.
-                  <button type="button" class="enlace" (click)="store.soltarOrden()">
-                    Dejar que lo acomodemos
-                  </button>
-                } @else {
-                  Acomodamos el orden para que la visita entre en el día que elijas.
-                  Arrastrá un servicio para decidirlo vos.
-                }
-              </p>
-            }
 
             <app-calendario
               [seleccionada]="store.fecha()"
@@ -377,34 +358,112 @@ interface Chip {
       color: var(--neutro-claro);
       display: grid;
       place-items: center;
-      padding: 0.2rem 0.1rem;
-      margin-top: 0.15rem;
+      padding: 0.25rem 0.15rem;
+      margin-top: 0.1rem;
+      border-radius: 6px;
       cursor: grab;
       flex-shrink: 0;
       touch-action: none;
-      transition: color 0.15s ease;
+      transition: color 0.18s ease, background 0.18s ease;
     }
     .tramo:hover .agarre {
       color: var(--primario);
+      background: var(--blanco);
     }
+    .agarre:active {
+      cursor: grabbing;
+    }
+
+    /*
+      Mientras dura el arrastre la lista queda "quieta": el cursor manda en todo
+      el bloque y nada se selecciona por accidente.
+    */
+    .tramos.cdk-drop-list-dragging {
+      cursor: grabbing;
+      user-select: none;
+    }
+    .tramos.cdk-drop-list-dragging .tramo:hover .agarre {
+      color: var(--neutro-claro);
+      background: none;
+    }
+
+    /* La tarjeta que viaja con el cursor: se despega apenas, sin dar un salto */
     .cdk-drag-preview {
-      box-shadow: 0 12px 28px rgba(22, 48, 47, 0.22);
       border-radius: var(--radio-chico);
       cursor: grabbing;
+      will-change: transform;
+      animation: alzar 170ms cubic-bezier(0.2, 0, 0, 1) both;
     }
     .cdk-drag-preview .agarre {
       cursor: grabbing;
+      color: var(--primario);
+      background: none;
     }
-    /* Hueco que deja el tramo mientras viaja */
-    .hueco {
+    /*
+      La propiedad scale va aparte de transform: se compone con el que el CDK
+      escribe en línea para seguir el puntero, así que no lo pisa.
+    */
+    @keyframes alzar {
+      from {
+        scale: 1;
+        box-shadow: 0 0 0 rgba(22, 48, 47, 0);
+      }
+      to {
+        scale: 1.015;
+        box-shadow: 0 14px 30px -10px rgba(22, 48, 47, 0.3), 0 2px 6px rgba(22, 48, 47, 0.08);
+      }
+    }
+    /* Al soltar, la tarjeta baja al hueco y apoya la sombra en el mismo tramo */
+    .cdk-drag-preview.cdk-drag-animating {
+      animation: none;
+      scale: 1;
+      box-shadow: 0 0 0 rgba(22, 48, 47, 0);
+      transition: transform 240ms cubic-bezier(0.2, 0, 0, 1), scale 240ms cubic-bezier(0.2, 0, 0, 1),
+        box-shadow 240ms ease;
+    }
+
+    /*
+      Hueco que deja el tramo mientras viaja. Es el clon que arma el CDK, con el
+      contenido oculto: conserva el alto exacto de la tarjeta y la página no se mueve.
+    */
+    .tramo.cdk-drag-placeholder {
       border: 1.5px dashed var(--primario);
       background: var(--primario-suave);
-      border-radius: var(--radio-chico);
-      min-height: 68px;
+      box-shadow: none;
+      animation: abrir-hueco 170ms cubic-bezier(0.2, 0, 0, 1) both;
     }
+    .cdk-drag-placeholder > * {
+      visibility: hidden;
+    }
+    @keyframes abrir-hueco {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 0.7;
+      }
+    }
+
+    /* El reacomodo de los vecinos y el regreso al soltar, con la misma curva */
     .cdk-drag-animating,
     .tramos.cdk-drop-list-dragging .tramo:not(.cdk-drag-placeholder) {
-      transition: transform 0.22s cubic-bezier(0, 0, 0.2, 1);
+      transition: transform 240ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .tramos.cdk-drop-list-dragging .tramo:not(.cdk-drag-placeholder) {
+      will-change: transform;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cdk-drag-preview,
+      .cdk-drag-preview.cdk-drag-animating,
+      .cdk-drag-placeholder {
+        animation: none;
+        scale: 1;
+      }
+      .cdk-drag-animating,
+      .tramos.cdk-drop-list-dragging .tramo:not(.cdk-drag-placeholder) {
+        transition: none;
+      }
     }
     .tramo-numero {
       width: 22px;
@@ -514,25 +573,6 @@ interface Chip {
       font-weight: 500;
       font-style: normal;
       font-size: 0.7rem;
-    }
-
-    .nota-orden {
-      margin: 0 0 1.1rem;
-      font-size: 0.78rem;
-      color: var(--neutro);
-      border-bottom: 1px solid var(--borde);
-      padding-bottom: 0.9rem;
-    }
-    .enlace {
-      background: none;
-      border: none;
-      padding: 0;
-      color: var(--primario);
-      font-weight: 700;
-      font-size: 0.78rem;
-    }
-    .enlace:hover {
-      text-decoration: underline;
     }
 
     /* Resumen del bloque elegido, arriba de los horarios */
@@ -721,13 +761,18 @@ interface Chip {
   `,
 })
 export class Agendar {
-  private readonly router = inject(Router);
+  private readonly navegacion = inject(NavegacionReserva);
   protected readonly store = inject(ReservaStore);
   private readonly disponibilidad = inject(Disponibilidad);
   private readonly calendario = viewChild(Calendario);
 
   protected readonly iniciales = inicialesDe;
   protected readonly duracion = duracionTexto;
+  /**
+   * Con el mouse el arrastre empieza al instante; con el dedo esperamos un
+   * momento para no robarle el gesto al scroll de la página.
+   */
+  protected readonly retardoArrastre = { touch: 110, mouse: 0 };
   /** Fotos que no cargaron: caen al avatar con iniciales. */
   private readonly sinFoto = signal<string[]>([]);
 
@@ -906,11 +951,11 @@ export class Agendar {
   }
 
   protected volver(): void {
-    this.router.navigate(['/servicio']);
+    this.navegacion.ir('servicio');
   }
 
   protected continuar(): void {
-    this.router.navigate(['/datos']);
+    this.navegacion.ir('datos');
   }
 
   private rangoDe(plan: Tramo[] | null): { desde: number; hasta: number } | null {

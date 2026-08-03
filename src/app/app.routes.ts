@@ -1,59 +1,14 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router, Routes } from '@angular/router';
-import { ReservaStore } from './servicios/reserva-store';
-import { SeleccionServicio } from './paginas/seleccion-servicio';
-import { Agendar } from './paginas/agendar';
-import { DatosContacto } from './paginas/datos-contacto';
-import { Confirmado } from './paginas/confirmado';
-import { MisTurnos } from './paginas/mis-turnos';
-
-const conServicio: CanActivateFn = () =>
-  inject(ReservaStore).hayServicios() ? true : inject(Router).createUrlTree(['/servicio']);
-
-/** El paso de datos necesita la visita resuelta: servicios, día y bloque. */
-const conTurnoCompleto: CanActivateFn = () => {
-  const store = inject(ReservaStore);
-  const router = inject(Router);
-  if (!store.hayServicios()) {
-    return router.createUrlTree(['/servicio']);
-  }
-  return store.listaParaDatos() ? true : router.createUrlTree(['/agendar']);
-};
-
-const conReservaConfirmada: CanActivateFn = () =>
-  inject(ReservaStore).confirmada()
-    ? true
-    : inject(Router).createUrlTree(['/servicio']);
+import { Routes } from '@angular/router';
+import { rutasDeReserva } from './rutas-reserva';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'servicio' },
+  ...rutasDeReserva('Tania Iznardo Osteopatía'),
   {
-    path: 'servicio',
-    component: SeleccionServicio,
-    title: 'Elegí tu servicio · Tania Iznardo Osteopatía',
-  },
-  {
-    path: 'agendar',
-    component: Agendar,
-    canActivate: [conServicio],
-    title: 'Elegí día y horario · Tania Iznardo Osteopatía',
-  },
-  {
-    path: 'datos',
-    component: DatosContacto,
-    canActivate: [conTurnoCompleto],
-    title: 'Tus datos · Tania Iznardo Osteopatía',
-  },
-  {
-    path: 'mis-turnos',
-    component: MisTurnos,
-    title: 'Mis turnos · Tania Iznardo Osteopatía',
-  },
-  {
-    path: 'confirmado',
-    component: Confirmado,
-    canActivate: [conReservaConfirmada],
-    title: 'Turno confirmado · Tania Iznardo Osteopatía',
+    // Landing de muestra con el mismo reservador embebido. No se enlaza desde
+    // ninguna pantalla del flujo: se entra por el menú de la cuenta.
+    path: 'webp',
+    loadChildren: () => import('./webp/webp.routes').then((m) => m.rutasWebp),
   },
   { path: '**', redirectTo: 'servicio' },
 ];

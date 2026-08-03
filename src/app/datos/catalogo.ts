@@ -1,10 +1,9 @@
 import { Servicio } from '../modelos';
 
-export const CONSULTORIO = {
-  direccion: 'Av. Vélez Sarsfield 761, Depto. 1° B',
-  ciudad: 'Córdoba Capital',
-  horario: 'Lun a Vie · 9-13 y 15-20 hs',
-};
+// La ficha del consultorio vive en `negocios.ts` desde que el reservador puede
+// correr embebido en el sitio de otro negocio. Se re-exporta para las pantallas
+// que siempre hablan del consultorio (la cabecera y el perfil de la app).
+export { CONSULTORIO } from './negocios';
 
 export interface GrupoServicios {
   nombre: string;

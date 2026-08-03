@@ -1,7 +1,9 @@
 import { ApplicationRef, Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { PerfilNegocio } from '../componentes/perfil-negocio';
 import { CarritoFlotante } from '../componentes/carrito-flotante';
 import { Impedimento, ReservaStore, TOPE_SERVICIOS } from '../servicios/reserva-store';
+import { NavegacionReserva } from '../servicios/navegacion-reserva';
 import { GRUPOS, SERVICIOS, esCombinable } from '../datos/catalogo';
 import { PROFESIONALES, inicialesDe, ofrece } from '../datos/profesionales';
 import { precioARS } from '../datos/formato';
@@ -13,9 +15,13 @@ const MAX_IMAGENES = 3;
   selector: 'app-seleccion-servicio',
   imports: [PerfilNegocio, CarritoFlotante],
   template: `
-    <div class="cabecera-panel">
-      <app-perfil-negocio />
-    </div>
+    <!-- Embebido en el sitio de un negocio, la cabecera de perfil sobra: la
+         identidad ya la pone la página que hospeda al reservador. -->
+    @if (!navegacion.embebido()) {
+      <div class="cabecera-panel">
+        <app-perfil-negocio />
+      </div>
+    }
     <div class="contenedor">
       <div class="disposicion">
         <aside class="lateral">
@@ -775,7 +781,9 @@ const MAX_IMAGENES = 3;
 })
 export class SeleccionServicio {
   protected readonly store = inject(ReservaStore);
+  protected readonly navegacion = inject(NavegacionReserva);
   private readonly app = inject(ApplicationRef);
+  private readonly ruta = inject(ActivatedRoute);
 
   protected readonly profesionales = PROFESIONALES;
   protected readonly maxImagenes = MAX_IMAGENES;
@@ -801,6 +809,15 @@ export class SeleccionServicio {
   protected readonly filtro = signal<Profesional | null>(this.profesionalDeLaVisita());
   /** Fotos que no cargaron: caen al avatar con iniciales. */
   private readonly sinFoto = signal<string[]>([]);
+
+  constructor() {
+    // `?cat=` entra directo a una categoría. Lo usa la landing: cada tarjeta de
+    // servicio abre el reservador con su grupo ya desplegado.
+    const categoria = this.ruta.snapshot.queryParamMap.get('cat');
+    if (categoria && GRUPOS.some((g) => g.nombre === categoria)) {
+      this.abierto.set(categoria);
+    }
+  }
 
   /** Grupos con al menos un servicio visible; alimenta el listado y el lateral. */
   protected readonly grupos = computed(() => {
