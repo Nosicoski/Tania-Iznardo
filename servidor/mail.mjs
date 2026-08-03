@@ -53,15 +53,29 @@ createServer(async (pedido, respuesta) => {
     console.error('✗ Falló el envío:', error.message);
     return responder(respuesta, 502, { error: error.message });
   }
-}).listen(PUERTO, () => {
-  console.log(`Servidor de mails escuchando en http://localhost:${PUERTO}`);
-  console.log(`Remitente: ${DESDE}`);
-  if (DESDE.includes('onboarding@resend.dev')) {
-    console.log(
-      'Aviso: con onboarding@resend.dev, Resend solo entrega al mail de tu propia cuenta.'
-    );
-  }
-});
+})
+  .on('error', (error) => {
+    // Si el puerto está tomado, el proxy del front devolvería un 500 sin
+    // explicación: mejor morir acá diciendo exactamente qué pasa.
+    if (error.code === 'EADDRINUSE') {
+      console.error(
+        `\n✗ El puerto ${PUERTO} ya está ocupado (¿quedó otro servidor de mails colgado?).` +
+          `\n  Liberalo con:  lsof -ti:${PUERTO} | xargs kill\n`
+      );
+    } else {
+      console.error('\n✗ No se pudo levantar el servidor de mails:', error.message, '\n');
+    }
+    process.exit(1);
+  })
+  .listen(PUERTO, () => {
+    console.log(`Servidor de mails escuchando en http://localhost:${PUERTO}`);
+    console.log(`Remitente: ${DESDE}`);
+    if (DESDE.includes('onboarding@resend.dev')) {
+      console.log(
+        'Aviso: con onboarding@resend.dev, Resend solo entrega al mail de tu propia cuenta.'
+      );
+    }
+  });
 
 async function enviar(turno) {
   const cancelarUrl = `${turno.baseUrl.replace(/\/$/, '')}/cancelar?r=${encodeURIComponent(turno.reservaId)}`;

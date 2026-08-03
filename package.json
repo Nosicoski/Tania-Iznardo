@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "start": "node servidor/dev.mjs",
     "dev": "node servidor/dev.mjs",
-    "start": "ng serve",
+    "start:front": "ng serve",
     "mail": "node servidor/mail.mjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",

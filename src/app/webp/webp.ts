@@ -373,20 +373,29 @@ import { Revelar } from './revelar';
     }
 
     /* Hoja anclada abajo: sube al abrirse y deja ver el sitio por arriba, que
-       es lo que cuenta la idea de "esto está embebido en esa página". */
+       es lo que cuenta la idea de "esto está embebido en esa página".
+
+       No llega a tocar el borde inferior: queda flotando sobre un colchón, así
+       se lee como una capa apoyada encima del sitio y no como algo pegado al
+       filo de la pantalla. Ese colchón también entra en el cálculo del alto y
+       del desplazamiento cerrado, para que la hoja siga escondiéndose entera. */
     .hoja {
+      --hoja-colchon: clamp(0.75rem, 2.5vh, 1.75rem);
+
       position: absolute;
       left: 50%;
-      bottom: 0;
+      bottom: var(--hoja-colchon);
       width: min(1240px, 96vw);
-      height: min(940px, 96dvh);
-      transform: translate(-50%, 100%);
+      height: min(940px, calc(96dvh - var(--hoja-colchon)));
+      transform: translate(-50%, calc(100% + var(--hoja-colchon)));
       transition: transform 0.42s cubic-bezier(0.22, 0.8, 0.28, 1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-radius: 18px 18px 0 0;
-      box-shadow: 0 -20px 60px -20px rgba(20, 30, 24, 0.5);
+      border-radius: 18px;
+      box-shadow:
+        0 -20px 60px -20px rgba(20, 30, 24, 0.5),
+        0 16px 40px -24px rgba(20, 30, 24, 0.45);
       background: var(--fondo);
       color: var(--secundario);
     }
@@ -453,7 +462,10 @@ import { Revelar } from './revelar';
       .enlaces {
         display: none;
       }
+      /* En pantallas chicas la hoja ocupa todo: ahí el colchón sobraría. */
       .hoja {
+        --hoja-colchon: 0px;
+
         width: 100vw;
         height: 100dvh;
         border-radius: 0;

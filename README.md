@@ -35,7 +35,16 @@ Los mockups de referencia (desktop 1440 y mobile 390) están en [`MOCKUPS/`](MOC
 
 ```bash
 npm install
-npx ng serve
+npm start
 ```
 
 Abrir `http://localhost:4200`. Build de producción: `npx ng build`.
+
+`npm start` levanta **dos** procesos: el front y el servidor de mails
+(`servidor/mail.mjs`, puerto 3001). Hacen falta los dos: la API key de Resend
+no puede vivir en el bundle, así que el mail de confirmación sale por ese
+proceso y el front le llega vía proxy. Si se corre solo `ng serve`, confirmar
+un turno responde 500 al pedir `/api/turno-confirmado`.
+
+Las credenciales van en un `.env` en la raíz (ver [`.env.ejemplo`](.env.ejemplo)).
+Para levantar únicamente el front: `npm run start:front`.
