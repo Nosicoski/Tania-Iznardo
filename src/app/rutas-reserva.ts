@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { ReservaStore } from './servicios/reserva-store';
+import { Notificaciones } from './servicios/notificaciones';
 import { baseDe } from './servicios/navegacion-reserva';
 import { SeleccionServicio } from './paginas/seleccion-servicio';
 import { Agendar } from './paginas/agendar';
@@ -20,14 +21,41 @@ function volverA(url: string, paso: string) {
 const conServicio: CanActivateFn = (_ruta, estado) =>
   inject(ReservaStore).hayServicios() ? true : volverA(estado.url, 'servicio');
 
+/**
+ * Cierra la visita si ya estaba confirmada. El turno reservado no se toca: lo
+ * que se descarta es la reserva en curso, que después de confirmar ya no
+ * existe. Devuelve si hubo algo que cerrar.
+ */
+function cerrarVisitaConfirmada(): boolean {
+  const store = inject(ReservaStore);
+  if (!store.confirmada()) {
+    return false;
+  }
+  store.reiniciar();
+  inject(Notificaciones).reiniciar();
+  return true;
+}
+
+/**
+ * El catálogo siempre arranca una visita nueva: si se llega acá con el turno
+ * ya confirmado, el carrito queda vacío.
+ */
+const catalogoLimpio: CanActivateFn = () => {
+  cerrarVisitaConfirmada();
+  return true;
+};
+
+/**
+ * Pasos intermedios del flujo. Con el turno ya confirmado, el "atrás" del
+ * navegador no vuelve al calendario ni al formulario de una reserva que ya se
+ * cerró: se descarta esa visita y se empieza de cero desde los servicios.
+ */
+const visitaSinConfirmar: CanActivateFn = (_ruta, estado) =>
+  cerrarVisitaConfirmada() ? volverA(estado.url, 'servicio') : true;
+
 /** El paso de datos necesita la visita resuelta: servicios, día y bloque. */
 const conTurnoCompleto: CanActivateFn = (_ruta, estado) => {
   const store = inject(ReservaStore);
-  // Con la visita ya confirmada, el "atrás" del navegador no puede volver al
-  // formulario para reservarla de nuevo: se vuelve a la confirmación.
-  if (store.confirmada()) {
-    return volverA(estado.url, 'confirmado');
-  }
   if (!store.hayServicios()) {
     return volverA(estado.url, 'servicio');
   }
@@ -49,18 +77,19 @@ export function rutasDeReserva(marca: string): Routes {
     {
       path: 'servicio',
       component: SeleccionServicio,
+      canActivate: [catalogoLimpio],
       title: titulo('Elegí tu servicio'),
     },
     {
       path: 'agendar',
       component: Agendar,
-      canActivate: [conServicio],
+      canActivate: [visitaSinConfirmar, conServicio],
       title: titulo('Elegí día y horario'),
     },
     {
       path: 'datos',
       component: DatosContacto,
-      canActivate: [conTurnoCompleto],
+      canActivate: [visitaSinConfirmar, conTurnoCompleto],
       title: titulo('Tus datos'),
     },
     {

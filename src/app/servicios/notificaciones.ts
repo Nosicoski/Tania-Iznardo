@@ -42,15 +42,31 @@ export class Notificaciones {
       });
       const cuerpo = await respuesta.json().catch(() => ({}));
       if (!respuesta.ok) {
-        throw new Error(cuerpo.error ?? `El servidor respondió ${respuesta.status}`);
+        throw new Error(cuerpo.error ?? this.explicar(respuesta.status));
       }
       this.estado.set('enviado');
     } catch (error) {
+      const detalle = error instanceof Error ? error.message : 'No se pudo enviar el mail';
       this.estado.set('error');
-      this.error.set(
-        error instanceof Error ? error.message : 'No se pudo enviar el mail'
+      this.error.set(detalle);
+      // La pantalla de confirmación ya no muestra el fallo: sin esto, un mail
+      // que no sale no deja rastro en ningún lado.
+      console.error('[mail] no se envió la confirmación:', detalle);
+    }
+  }
+
+  /**
+   * Un código pelado no dice nada. El 500 casi siempre es el proxy de Angular
+   * avisando que nadie escucha en el puerto del servidor de mails.
+   */
+  private explicar(estado: number): string {
+    if (estado === 500 || estado === 502 || estado === 504) {
+      return (
+        'El servidor de mails no está respondiendo. Levantalo con "npm run mail" ' +
+        '(o usá "npm run dev", que arranca los dos juntos).'
       );
     }
+    return `El servidor respondió ${estado}`;
   }
 
   reiniciar(): void {

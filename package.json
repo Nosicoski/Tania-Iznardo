@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "dev": "node servidor/dev.mjs",
     "start": "ng serve",
     "mail": "node servidor/mail.mjs",
     "build": "ng build",
