@@ -21,6 +21,9 @@ const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
 const PASO_MS = 110;
 const DESTELLO_MS = 620;
 
+/** Cuánto queda el tilde en pantalla antes de cerrar el popup solo. */
+const ESPERA_EXITO_MS = 1500;
+
 /**
  * Popup de cuenta: inicia sesión o registra, según lo que pida `Cuentas.modal`.
  * Sin backend, las cuentas viven en el navegador (ver `Cuentas`).
@@ -29,15 +32,42 @@ const DESTELLO_MS = 620;
   selector: 'app-modal-cuenta',
   imports: [ReactiveFormsModule],
   template: `
-    @if (cuentas.modal()) {
-      <div class="fondo" (click)="cerrar()">
-        <div
-          class="panel"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-cuenta-titulo"
-          (click)="$event.stopPropagation()"
-        >
+    <!-- El estado de éxito mantiene el panel en pantalla después de que
+         Cuentas cierra el modal: sin eso, el tilde no llegaría a verse. -->
+    @if (cuentas.modal() || exito()) {
+      <!--
+        El fondo no cierra: cerrarlo vacía el formulario, y un toque al costado
+        mientras se tipea la contraseña borraba todo lo cargado. La única
+        salida es la cruz, que es una decisión explícita.
+      -->
+      <div class="fondo">
+        <div class="panel" role="dialog" aria-modal="true" aria-labelledby="modal-cuenta-titulo">
+          @if (exito(); as logrado) {
+            <div class="exito" role="status" aria-live="polite">
+              <span class="exito-circulo" aria-hidden="true">
+                <svg viewBox="0 0 52 52" width="46" height="46" fill="none">
+                  <path
+                    class="exito-tilde"
+                    d="M14 27.5 22.5 36 38 18"
+                    stroke="currentColor"
+                    stroke-width="4.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <strong>
+                {{ logrado === 'registro' ? 'Cuenta confirmada' : 'Inicio exitoso' }}
+              </strong>
+              <span>
+                {{
+                  logrado === 'registro'
+                    ? 'Ya podés reservar sin volver a cargar tus datos.'
+                    : '¡Qué bueno verte de nuevo!'
+                }}
+              </span>
+            </div>
+          } @else {
           <button type="button" class="cerrar" (click)="cerrar()" aria-label="Cerrar">
             <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
               <path
@@ -418,11 +448,73 @@ const DESTELLO_MS = 620;
           }
 
           <p class="aviso">Demo sin servidor: la cuenta se guarda solo en este navegador.</p>
+          }
         </div>
       </div>
     }
   `,
   styles: `
+    /* Confirmación con tilde dibujado: el círculo entra, el trazo se dibuja
+       y recién ahí el panel se cierra solo. */
+    .exito {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.35rem;
+      padding: 2.25rem 1rem 1.75rem;
+    }
+    .exito-circulo {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: var(--primario);
+      color: var(--blanco);
+      display: grid;
+      place-items: center;
+      margin-bottom: 0.75rem;
+      animation: exito-entra 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .exito-tilde {
+      /* 46 ≈ el largo del trazo; se dibuja de punta a punta. */
+      stroke-dasharray: 46;
+      stroke-dashoffset: 46;
+      animation: exito-traza 0.4s 0.18s ease-out forwards;
+    }
+    .exito strong {
+      font-size: 1.15rem;
+      color: var(--secundario);
+    }
+    .exito span {
+      font-size: 0.88rem;
+      color: var(--neutro);
+    }
+    @keyframes exito-entra {
+      from {
+        opacity: 0;
+        transform: scale(0.4);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @keyframes exito-traza {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    /* Sin animación: el tilde ya está dibujado desde el primer cuadro. */
+    @media (prefers-reduced-motion: reduce) {
+      .exito-circulo {
+        animation: none;
+      }
+      .exito-tilde {
+        animation: none;
+        stroke-dashoffset: 0;
+      }
+    }
+
     .fondo {
       position: fixed;
       inset: 0;
@@ -801,9 +893,6 @@ const DESTELLO_MS = 620;
       }
     }
   `,
-  host: {
-    '(document:keydown.escape)': 'cerrar()',
-  },
 })
 export class ModalCuenta {
   protected readonly cuentas = inject(Cuentas);
@@ -814,6 +903,8 @@ export class ModalCuenta {
   protected readonly verClave = signal(false);
   protected readonly verConfirmacion = signal(false);
   protected readonly pedirAyuda = signal(false);
+  /** Alta o login recién resueltos: mientras dura, el panel muestra el tilde. */
+  protected readonly exito = signal<'registro' | 'login' | null>(null);
   protected readonly esLogin = computed(() => this.cuentas.modal() === 'login');
 
   protected readonly formulario = this.fb.group({
@@ -905,6 +996,7 @@ export class ModalCuenta {
   }
 
   protected cerrar(): void {
+    this.exito.set(null);
     this.error.set(null);
     this.pedirAyuda.set(false);
     this.verClave.set(false);
@@ -967,6 +1059,9 @@ export class ModalCuenta {
       this.formulario.markAllAsTouched();
       return;
     }
+    // Se guarda antes de llamar: `esLogin()` deriva de `cuentas.modal()`, que
+    // queda en null en cuanto la sesión se activa.
+    const modo = this.esLogin() ? 'login' : 'registro';
     const v = this.formulario.getRawValue();
     const error = this.esLogin()
       ? this.cuentas.iniciarSesion(v.email, v.clave)
@@ -988,6 +1083,10 @@ export class ModalCuenta {
     this.formulario.reset();
     this.verClave.set(false);
     this.verConfirmacion.set(false);
+    // `Cuentas` ya cerró el modal al activar la sesión; el panel se sostiene
+    // con `exito` el tiempo que dura el tilde y después se va solo.
+    this.exito.set(modo);
+    this.temporizadores.push(setTimeout(() => this.cerrar(), ESPERA_EXITO_MS));
   }
 
   /** En registro se piden los datos personales y la confirmación de la clave. */
