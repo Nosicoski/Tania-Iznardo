@@ -36,9 +36,9 @@ const ESPERA_EXITO_MS = 1500;
          Cuentas cierra el modal: sin eso, el tilde no llegaría a verse. -->
     @if (cuentas.modal() || exito()) {
       <!--
-        El fondo no cierra: cerrarlo vacía el formulario, y un toque al costado
-        mientras se tipea la contraseña borraba todo lo cargado. La única
-        salida es la cruz, que es una decisión explícita.
+        El fondo no cierra: un toque al costado mientras se tipea la contraseña
+        borraba todo lo cargado. Se sale por la cruz (que además limpia) o con
+        Escape (que deja el formulario como estaba).
       -->
       <div class="fondo">
         <div class="panel" role="dialog" aria-modal="true" aria-labelledby="modal-cuenta-titulo">
@@ -68,250 +68,170 @@ const ESPERA_EXITO_MS = 1500;
               </span>
             </div>
           } @else {
-          <button type="button" class="cerrar" (click)="cerrar()" aria-label="Cerrar">
-            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
-              <path
-                d="M5.5 5.5l9 9m0-9l-9 9"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-
-          <div class="cabecera">
-            <span class="marca-icono" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-                <circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
+            <button type="button" class="cerrar" (click)="cerrar()" aria-label="Cerrar">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
                 <path
-                  d="M4.8 19.5c.9-3.4 3.7-5.2 7.2-5.2s6.3 1.8 7.2 5.2"
+                  d="M5.5 5.5l9 9m0-9l-9 9"
                   stroke="currentColor"
                   stroke-width="1.8"
                   stroke-linecap="round"
                 />
               </svg>
-            </span>
-            <h2 id="modal-cuenta-titulo">
-              {{ esLogin() ? '¡Qué bueno verte de nuevo!' : 'Creá tu cuenta' }}
-            </h2>
-            <p class="bajada">
-              {{
-                esLogin()
-                  ? 'Entrá para ver y gestionar tus turnos.'
-                  : 'Te lleva menos de un minuto y no la perdés más.'
-              }}
-            </p>
-          </div>
-
-          <!-- Cambiar de modo sin salir del popup -->
-          <div class="selector" role="tablist" aria-label="Cuenta">
-            <button
-              type="button"
-              role="tab"
-              class="opcion"
-              [class.activa]="esLogin()"
-              [attr.aria-selected]="esLogin()"
-              (click)="ir('login')"
-            >
-              Iniciar sesión
             </button>
-            <button
-              type="button"
-              role="tab"
-              class="opcion"
-              [class.activa]="!esLogin()"
-              [attr.aria-selected]="!esLogin()"
-              (click)="ir('registro')"
-            >
-              Crear cuenta
-            </button>
-          </div>
 
-          <form [formGroup]="formulario" (ngSubmit)="enviar()">
-            @if (!esLogin()) {
-              <div class="par">
-                <label class="campo">
-                  <span class="etiqueta">Nombre</span>
-                  <span class="control" [class.relleno]="rellenando('nombre')">
-                    <span class="icono" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
-                        <circle cx="10" cy="7" r="2.8" stroke="currentColor" stroke-width="1.5" />
-                        <path
-                          d="M4.5 16c.7-2.6 2.8-4 5.5-4s4.8 1.4 5.5 4"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                        />
-                      </svg>
+            <div class="cabecera">
+              <span class="marca-icono" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                  <circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
+                  <path
+                    d="M4.8 19.5c.9-3.4 3.7-5.2 7.2-5.2s6.3 1.8 7.2 5.2"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+              <h2 id="modal-cuenta-titulo">
+                {{ esLogin() ? '¡Qué bueno verte de nuevo!' : 'Creá tu cuenta' }}
+              </h2>
+              <p class="bajada">
+                {{
+                  esLogin()
+                    ? 'Entrá para ver y gestionar tus turnos.'
+                    : 'Te lleva menos de un minuto y no la perdés más.'
+                }}
+              </p>
+            </div>
+
+            <!-- Cambiar de modo sin salir del popup -->
+            <div class="selector" role="tablist" aria-label="Cuenta">
+              <button
+                type="button"
+                role="tab"
+                class="opcion"
+                [class.activa]="esLogin()"
+                [attr.aria-selected]="esLogin()"
+                (click)="ir('login')"
+              >
+                Iniciar sesión
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="opcion"
+                [class.activa]="!esLogin()"
+                [attr.aria-selected]="!esLogin()"
+                (click)="ir('registro')"
+              >
+                Crear cuenta
+              </button>
+            </div>
+
+            <form [formGroup]="formulario" (ngSubmit)="enviar()">
+              @if (!esLogin()) {
+                <div class="par">
+                  <label class="campo">
+                    <span class="etiqueta">Nombre</span>
+                    <span class="control" [class.relleno]="rellenando('nombre')">
+                      <span class="icono" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
+                          <circle cx="10" cy="7" r="2.8" stroke="currentColor" stroke-width="1.5" />
+                          <path
+                            d="M4.5 16c.7-2.6 2.8-4 5.5-4s4.8 1.4 5.5 4"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </span>
+                      <input type="text" formControlName="nombre" placeholder="María" />
                     </span>
-                    <input type="text" formControlName="nombre" placeholder="María" />
-                  </span>
-                  @if (invalido('nombre')) {
-                    <span class="error" role="alert">Ingresá tu nombre.</span>
-                  }
-                </label>
-                <label class="campo">
-                  <span class="etiqueta">Apellido</span>
-                  <span class="control" [class.relleno]="rellenando('apellido')">
-                    <input type="text" formControlName="apellido" placeholder="García" />
-                  </span>
-                  @if (invalido('apellido')) {
-                    <span class="error" role="alert">Ingresá tu apellido.</span>
-                  }
-                </label>
-              </div>
-            }
-
-            <label class="campo">
-              <span class="etiqueta">Email</span>
-              <span class="control" [class.relleno]="rellenando('email')">
-                <span class="icono" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
-                    <rect
-                      x="2.5"
-                      y="4.5"
-                      width="15"
-                      height="11"
-                      rx="2"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    />
-                    <path
-                      d="m3.5 6 6.5 5 6.5-5"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </span>
-                <input
-                  type="email"
-                  formControlName="email"
-                  placeholder="vos@mail.com"
-                  autocomplete="email"
-                />
-              </span>
-              @if (invalido('email')) {
-                <span class="error" role="alert">Ingresá un email válido.</span>
+                    @if (invalido('nombre')) {
+                      <span class="error" role="alert">Ingresá tu nombre.</span>
+                    }
+                  </label>
+                  <label class="campo">
+                    <span class="etiqueta">Apellido</span>
+                    <span class="control" [class.relleno]="rellenando('apellido')">
+                      <input type="text" formControlName="apellido" placeholder="García" />
+                    </span>
+                    @if (invalido('apellido')) {
+                      <span class="error" role="alert">Ingresá tu apellido.</span>
+                    }
+                  </label>
+                </div>
               }
-            </label>
 
-            @if (!esLogin()) {
-              <div class="par">
-                <label class="campo">
-                  <span class="etiqueta">Teléfono</span>
-                  <span class="control" [class.relleno]="rellenando('telefono')">
-                    <span class="prefijo">+54</span>
-                    <input
-                      type="tel"
-                      formControlName="telefono"
-                      placeholder="3511234567"
-                      inputmode="numeric"
-                    />
+              <label class="campo">
+                <span class="etiqueta">Email</span>
+                <span class="control" [class.relleno]="rellenando('email')">
+                  <span class="icono" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
+                      <rect
+                        x="2.5"
+                        y="4.5"
+                        width="15"
+                        height="11"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      />
+                      <path
+                        d="m3.5 6 6.5 5 6.5-5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
                   </span>
-                  @if (invalido('telefono')) {
-                    <span class="error" role="alert">Solo números, sin el 0 y sin el 15.</span>
-                  }
-                </label>
-                <label class="campo">
-                  <span class="etiqueta">DNI</span>
-                  <span class="control" [class.relleno]="rellenando('dni')">
-                    <input
-                      type="text"
-                      formControlName="dni"
-                      placeholder="30123456"
-                      inputmode="numeric"
-                    />
-                  </span>
-                  @if (invalido('dni')) {
-                    <span class="error" role="alert">7 u 8 números, sin puntos.</span>
-                  }
-                </label>
-              </div>
-            }
-
-            <label class="campo">
-              <span class="etiqueta">Contraseña</span>
-              <span class="control">
-                <span class="icono" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
-                    <rect
-                      x="4"
-                      y="8.5"
-                      width="12"
-                      height="7.5"
-                      rx="2"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    />
-                    <path
-                      d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    />
-                  </svg>
+                  <input
+                    type="email"
+                    formControlName="email"
+                    placeholder="vos@mail.com"
+                    autocomplete="email"
+                  />
                 </span>
-                <input
-                  [type]="verClave() ? 'text' : 'password'"
-                  formControlName="clave"
-                  [placeholder]="esLogin() ? 'Tu contraseña' : 'Al menos 6 caracteres'"
-                  [attr.autocomplete]="esLogin() ? 'current-password' : 'new-password'"
-                />
-                <button
-                  type="button"
-                  class="ojo"
-                  (click)="verClave.set(!verClave())"
-                  [attr.aria-label]="verClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                  [attr.aria-pressed]="verClave()"
-                >
-                  @if (verClave()) {
-                    <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
-                      <path
-                        d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                      />
-                      <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                      <path
-                        d="m4 16 12-12"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      />
-                    </svg>
-                  } @else {
-                    <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
-                      <path
-                        d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                      />
-                      <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                    </svg>
-                  }
-                </button>
-              </span>
+                @if (invalido('email')) {
+                  <span class="error" role="alert">Ingresá un email válido.</span>
+                }
+              </label>
 
               @if (!esLogin()) {
-                <!-- Medidor: solo orienta, no bloquea el alta -->
-                <span class="fuerza">
-                  <span class="barras" aria-hidden="true">
-                    @for (i of [0, 1, 2, 3]; track i) {
-                      <span class="barra" [class.llena]="i < fuerza()"></span>
+                <div class="par">
+                  <label class="campo">
+                    <span class="etiqueta">Teléfono</span>
+                    <span class="control" [class.relleno]="rellenando('telefono')">
+                      <span class="prefijo">+54</span>
+                      <input
+                        type="tel"
+                        formControlName="telefono"
+                        placeholder="3511234567"
+                        inputmode="numeric"
+                      />
+                    </span>
+                    @if (invalido('telefono')) {
+                      <span class="error" role="alert">Solo números, sin el 0 y sin el 15.</span>
                     }
-                  </span>
-                  <span class="nivel">{{ etiquetaFuerza() }}</span>
-                </span>
+                  </label>
+                  <label class="campo">
+                    <span class="etiqueta">DNI</span>
+                    <span class="control" [class.relleno]="rellenando('dni')">
+                      <input
+                        type="text"
+                        formControlName="dni"
+                        placeholder="30123456"
+                        inputmode="numeric"
+                      />
+                    </span>
+                    @if (invalido('dni')) {
+                      <span class="error" role="alert">7 u 8 números, sin puntos.</span>
+                    }
+                  </label>
+                </div>
               }
-              @if (invalido('clave')) {
-                <span class="error" role="alert">Usá al menos 6 caracteres.</span>
-              }
-            </label>
 
-            @if (!esLogin()) {
               <label class="campo">
-                <span class="etiqueta">Repetí la contraseña</span>
+                <span class="etiqueta">Contraseña</span>
                 <span class="control">
                   <span class="icono" aria-hidden="true">
                     <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
@@ -333,34 +253,19 @@ const ESPERA_EXITO_MS = 1500;
                     </svg>
                   </span>
                   <input
-                    [type]="verConfirmacion() ? 'text' : 'password'"
-                    formControlName="confirmacion"
-                    placeholder="Repetila para confirmar"
-                    autocomplete="new-password"
+                    [type]="verClave() ? 'text' : 'password'"
+                    formControlName="clave"
+                    [placeholder]="esLogin() ? 'Tu contraseña' : 'Al menos 6 caracteres'"
+                    [attr.autocomplete]="esLogin() ? 'current-password' : 'new-password'"
                   />
-                  @if (coinciden()) {
-                    <span class="tilde" aria-hidden="true">
-                      <svg viewBox="0 0 16 16" width="12" height="12" fill="none">
-                        <path
-                          d="M3 8.5 6.5 12 13 4.5"
-                          stroke="currentColor"
-                          stroke-width="2.4"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </span>
-                  }
                   <button
                     type="button"
                     class="ojo"
-                    (click)="verConfirmacion.set(!verConfirmacion())"
-                    [attr.aria-label]="
-                      verConfirmacion() ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                    "
-                    [attr.aria-pressed]="verConfirmacion()"
+                    (click)="verClave.set(!verClave())"
+                    [attr.aria-label]="verClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    [attr.aria-pressed]="verClave()"
                   >
-                    @if (verConfirmacion()) {
+                    @if (verClave()) {
                       <svg
                         viewBox="0 0 20 20"
                         width="17"
@@ -399,55 +304,162 @@ const ESPERA_EXITO_MS = 1500;
                     }
                   </button>
                 </span>
-                @if (invalido('confirmacion')) {
-                  <span class="error" role="alert">Las contraseñas no coinciden.</span>
+
+                @if (!esLogin()) {
+                  <!-- Medidor: solo orienta, no bloquea el alta -->
+                  <span class="fuerza">
+                    <span class="barras" aria-hidden="true">
+                      @for (i of [0, 1, 2, 3]; track i) {
+                        <span class="barra" [class.llena]="i < fuerza()"></span>
+                      }
+                    </span>
+                    <span class="nivel">{{ etiquetaFuerza() }}</span>
+                  </span>
+                }
+                @if (invalido('clave')) {
+                  <span class="error" role="alert">Usá al menos 6 caracteres.</span>
                 }
               </label>
-            }
 
-            @if (esLogin()) {
-              <button type="button" class="olvide" (click)="pedirAyuda.set(true)">
-                ¿Olvidaste tu contraseña?
-              </button>
-              @if (pedirAyuda()) {
-                <p class="ayuda-caja">
-                  Todavía no hay recuperación automática. Escribinos por WhatsApp y la restablecemos
-                  con vos.
-                </p>
-              }
-            }
-
-            @if (error(); as e) {
-              <p class="error-caja" role="alert">{{ e }}</p>
-            }
-
-            <button type="submit" class="btn btn-primario enviar" [disabled]="formulario.invalid">
-              {{ esLogin() ? 'Entrar' : 'Crear mi cuenta' }}
-            </button>
-          </form>
-
-          @if (!esLogin()) {
-            <ul class="beneficios">
-              @for (b of beneficios; track b) {
-                <li>
-                  <span class="punto" aria-hidden="true">
-                    <svg viewBox="0 0 16 16" width="10" height="10" fill="none">
-                      <path
-                        d="M3 8.5 6.5 12 13 4.5"
-                        stroke="currentColor"
-                        stroke-width="2.6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
+              @if (!esLogin()) {
+                <label class="campo">
+                  <span class="etiqueta">Repetí la contraseña</span>
+                  <span class="control">
+                    <span class="icono" aria-hidden="true">
+                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
+                        <rect
+                          x="4"
+                          y="8.5"
+                          width="12"
+                          height="7.5"
+                          rx="2"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                        />
+                        <path
+                          d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </span>
+                    <input
+                      [type]="verConfirmacion() ? 'text' : 'password'"
+                      formControlName="confirmacion"
+                      placeholder="Repetila para confirmar"
+                      autocomplete="new-password"
+                    />
+                    @if (coinciden()) {
+                      <span class="tilde" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none">
+                          <path
+                            d="M3 8.5 6.5 12 13 4.5"
+                            stroke="currentColor"
+                            stroke-width="2.4"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    }
+                    <button
+                      type="button"
+                      class="ojo"
+                      (click)="verConfirmacion.set(!verConfirmacion())"
+                      [attr.aria-label]="
+                        verConfirmacion() ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                      "
+                      [attr.aria-pressed]="verConfirmacion()"
+                    >
+                      @if (verConfirmacion()) {
+                        <svg
+                          viewBox="0 0 20 20"
+                          width="17"
+                          height="17"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                          />
+                          <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
+                          <path
+                            d="m4 16 12-12"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      } @else {
+                        <svg
+                          viewBox="0 0 20 20"
+                          width="17"
+                          height="17"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                          />
+                          <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
+                        </svg>
+                      }
+                    </button>
                   </span>
-                  {{ b }}
-                </li>
+                  @if (invalido('confirmacion')) {
+                    <span class="error" role="alert">Las contraseñas no coinciden.</span>
+                  }
+                </label>
               }
-            </ul>
-          }
 
-          <p class="aviso">Demo sin servidor: la cuenta se guarda solo en este navegador.</p>
+              @if (esLogin()) {
+                <button type="button" class="olvide" (click)="pedirAyuda.set(true)">
+                  ¿Olvidaste tu contraseña?
+                </button>
+                @if (pedirAyuda()) {
+                  <p class="ayuda-caja">
+                    Todavía no hay recuperación automática. Escribinos por WhatsApp y la
+                    restablecemos con vos.
+                  </p>
+                }
+              }
+
+              @if (error(); as e) {
+                <p class="error-caja" role="alert">{{ e }}</p>
+              }
+
+              <button type="submit" class="btn btn-primario enviar" [disabled]="formulario.invalid">
+                {{ esLogin() ? 'Entrar' : 'Crear mi cuenta' }}
+              </button>
+            </form>
+
+            @if (!esLogin()) {
+              <ul class="beneficios">
+                @for (b of beneficios; track b) {
+                  <li>
+                    <span class="punto" aria-hidden="true">
+                      <svg viewBox="0 0 16 16" width="10" height="10" fill="none">
+                        <path
+                          d="M3 8.5 6.5 12 13 4.5"
+                          stroke="currentColor"
+                          stroke-width="2.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    {{ b }}
+                  </li>
+                }
+              </ul>
+            }
+
+            <p class="aviso">Demo sin servidor: la cuenta se guarda solo en este navegador.</p>
           }
         </div>
       </div>
@@ -473,13 +485,13 @@ const ESPERA_EXITO_MS = 1500;
       display: grid;
       place-items: center;
       margin-bottom: 0.75rem;
-      animation: exito-entra 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: exito-entra 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .exito-tilde {
       /* 46 ≈ el largo del trazo; se dibuja de punta a punta. */
       stroke-dasharray: 46;
       stroke-dashoffset: 46;
-      animation: exito-traza 0.4s 0.18s ease-out forwards;
+      animation: exito-traza 0.3s 0.1s ease-out forwards;
     }
     .exito strong {
       font-size: 1.15rem;
@@ -893,6 +905,10 @@ const ESPERA_EXITO_MS = 1500;
       }
     }
   `,
+  host: {
+    // Escape sale, pero sin vaciar el formulario: ver `cerrarConservando`.
+    '(document:keydown.escape)': 'cerrarConservando()',
+  },
 })
 export class ModalCuenta {
   protected readonly cuentas = inject(Cuentas);
@@ -995,15 +1011,30 @@ export class ModalCuenta {
     return this.recienRellenados().includes(campo);
   }
 
+  /** Cierre deliberado (la cruz): se va y no queda nada cargado. */
   protected cerrar(): void {
+    this.replegar();
+    this.formulario.reset();
+    this.cuentas.cerrarModal();
+  }
+
+  /**
+   * Escape: sale sin tocar el formulario. Se puede apretar sin querer mientras
+   * se tipea, así que al volver a abrir tiene que estar todo como estaba.
+   */
+  protected cerrarConservando(): void {
+    this.replegar();
+    this.cuentas.cerrarModal();
+  }
+
+  /** Estado efímero que no sobrevive a ningún cierre (ni siquiera al de Escape). */
+  private replegar(): void {
     this.exito.set(null);
     this.error.set(null);
     this.pedirAyuda.set(false);
     this.verClave.set(false);
     this.verConfirmacion.set(false);
     this.limpiarTemporizadores();
-    this.formulario.reset();
-    this.cuentas.cerrarModal();
   }
 
   /**
