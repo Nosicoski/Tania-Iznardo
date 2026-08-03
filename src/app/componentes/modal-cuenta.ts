@@ -331,7 +331,13 @@ const DESTELLO_MS = 620;
                     [attr.aria-pressed]="verConfirmacion()"
                   >
                     @if (verConfirmacion()) {
-                      <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 20 20"
+                        width="17"
+                        height="17"
+                        fill="none"
+                        aria-hidden="true"
+                      >
                         <path
                           d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
                           stroke="currentColor"
@@ -346,7 +352,13 @@ const DESTELLO_MS = 620;
                         />
                       </svg>
                     } @else {
-                      <svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 20 20"
+                        width="17"
+                        height="17"
+                        fill="none"
+                        aria-hidden="true"
+                      >
                         <path
                           d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
                           stroke="currentColor"
@@ -369,8 +381,8 @@ const DESTELLO_MS = 620;
               </button>
               @if (pedirAyuda()) {
                 <p class="ayuda-caja">
-                  Todavía no hay recuperación automática. Escribinos por WhatsApp y la
-                  restablecemos con vos.
+                  Todavía no hay recuperación automática. Escribinos por WhatsApp y la restablecemos
+                  con vos.
                 </p>
               }
             }
@@ -405,9 +417,7 @@ const DESTELLO_MS = 620;
             </ul>
           }
 
-          <p class="aviso">
-            Demo sin servidor: la cuenta se guarda solo en este navegador.
-          </p>
+          <p class="aviso">Demo sin servidor: la cuenta se guarda solo en este navegador.</p>
         </div>
       </div>
     }
@@ -523,7 +533,9 @@ const DESTELLO_MS = 620;
       font-size: 0.85rem;
       font-weight: 700;
       color: var(--neutro);
-      transition: background 0.15s ease, color 0.15s ease;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease;
     }
     .opcion:hover {
       color: var(--secundario);
@@ -759,6 +771,27 @@ const DESTELLO_MS = 620;
       color: var(--neutro-claro);
     }
 
+    @media (max-width: 720px) {
+      /* El panel es más alto que la pantalla y se scrollea: sin este respiro
+         el botón de confirmar queda pegado al borde (y bajo la barra del
+         navegador en iOS). */
+      .panel {
+        margin-bottom: calc(1rem + env(safe-area-inset-bottom));
+      }
+      /* Objetivos táctiles: mostrar/ocultar contraseña y cerrar el diálogo
+         eran de ~23 y ~31 px, imposibles de acertar con el pulgar. */
+      .ojo {
+        width: 40px;
+        height: 40px;
+        margin-right: -0.4rem;
+      }
+      .cerrar {
+        width: 40px;
+        height: 40px;
+        top: 0.6rem;
+        right: 0.6rem;
+      }
+    }
     @media (max-width: 480px) {
       .par {
         grid-template-columns: 1fr;
@@ -815,7 +848,7 @@ export class ModalCuenta {
   });
 
   protected readonly etiquetaFuerza = computed(() =>
-    this.fuerza() === 0 ? '' : NIVELES[this.fuerza() - 1]
+    this.fuerza() === 0 ? '' : NIVELES[this.fuerza() - 1],
   );
 
   protected readonly coinciden = computed(() => {
@@ -849,7 +882,7 @@ export class ModalCuenta {
       this.formulario.controls.confirmacion.updateValueAndValidity({ emitEvent: false });
     });
     this.formulario.controls.confirmacion.valueChanges.subscribe((valor) =>
-      this.confirmacionEscrita.set(valor)
+      this.confirmacionEscrita.set(valor),
     );
   }
 
@@ -907,22 +940,18 @@ export class ModalCuenta {
           this.recienRellenados.update((lista) => [...lista, campo]);
           this.temporizadores.push(
             setTimeout(
-              () =>
-                this.recienRellenados.update((lista) =>
-                  lista.filter((c) => c !== campo)
-                ),
-              DESTELLO_MS
-            )
+              () => this.recienRellenados.update((lista) => lista.filter((c) => c !== campo)),
+              DESTELLO_MS,
+            ),
           );
-        }, i * PASO_MS)
+        }, i * PASO_MS),
       );
     });
   }
 
   private sinAnimacion(): boolean {
     return (
-      typeof matchMedia !== 'undefined' &&
-      matchMedia('(prefers-reduced-motion: reduce)').matches
+      typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
     );
   }
 
@@ -949,7 +978,7 @@ export class ModalCuenta {
             telefono: v.telefono,
             dni: v.dni || undefined,
           },
-          v.clave
+          v.clave,
         );
 
     if (error) {
@@ -969,9 +998,7 @@ export class ModalCuenta {
       control.updateValueAndValidity({ emitEvent: false });
     }
     const telefono = this.formulario.controls.telefono;
-    telefono.setValidators(
-      registro ? [Validators.required, Validators.pattern(/^\d{8,12}$/)] : []
-    );
+    telefono.setValidators(registro ? [Validators.required, Validators.pattern(/^\d{8,12}$/)] : []);
     telefono.updateValueAndValidity({ emitEvent: false });
 
     const dni = this.formulario.controls.dni;

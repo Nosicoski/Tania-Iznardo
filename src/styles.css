@@ -136,6 +136,22 @@ a {
   .contenedor {
     padding: 0 1rem 9rem; /* deja lugar a la barra "Tu reserva" fija */
   }
+
+  /* Los títulos de servicio son largos: a 1.75rem se comen media pantalla
+     antes de que el paciente vea nada accionable. */
+  h1 {
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+  h2 {
+    font-size: 1.1rem;
+  }
+
+  /* Blanco táctil mínimo: en el celular todo se toca con el dedo, no con
+     un puntero de un pixel. */
+  .btn {
+    min-height: 44px;
+  }
 }
 
 /* La confirmación del turno entra completa en pantalla: se apaga el scroll para
@@ -155,7 +171,9 @@ a {
 .webp-revelar {
   opacity: 0;
   transform: translateY(22px);
-  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 0.8, 0.28, 1);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.22, 0.8, 0.28, 1);
 }
 .webp-revelar.visible {
   opacity: 1;

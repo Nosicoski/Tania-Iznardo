@@ -172,7 +172,10 @@ import { CarruselTurnos } from './carrusel-turnos';
       color: var(--secundario);
       display: grid;
       place-items: center;
-      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+      transition:
+        border-color 0.15s ease,
+        color 0.15s ease,
+        background 0.15s ease;
     }
     .globo:hover,
     .globo[aria-expanded='true'] {
@@ -283,6 +286,9 @@ import { CarruselTurnos } from './carrusel-turnos';
         font-size: 0.98rem;
         overflow: hidden;
         text-overflow: ellipsis;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
       }
       .direccion {
         font-size: 0.72rem;

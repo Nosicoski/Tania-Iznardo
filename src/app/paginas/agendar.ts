@@ -69,7 +69,12 @@ interface Chip {
                   cdkDragBoundary=".tramos"
                 >
                   @if (store.cantidad() > 1) {
-                    <span class="agarre" cdkDragHandle aria-hidden="true" title="Arrastrá para reordenar">
+                    <span
+                      class="agarre"
+                      cdkDragHandle
+                      aria-hidden="true"
+                      title="Arrastrá para reordenar"
+                    >
                       <svg viewBox="0 0 12 16" width="10" height="13" fill="currentColor">
                         <circle cx="3.5" cy="3" r="1.4" />
                         <circle cx="8.5" cy="3" r="1.4" />
@@ -93,7 +98,11 @@ interface Chip {
                     }
 
                     <!-- Profesional del tramo: automático o pedido a mano -->
-                    <div class="profes" role="radiogroup" [attr.aria-label]="'Profesional para ' + t.servicio.nombre">
+                    <div
+                      class="profes"
+                      role="radiogroup"
+                      [attr.aria-label]="'Profesional para ' + t.servicio.nombre"
+                    >
                       <button
                         type="button"
                         class="globo"
@@ -104,7 +113,13 @@ interface Chip {
                       >
                         <span class="globo-avatar avatar-todos" aria-hidden="true">
                           <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
-                            <circle cx="9" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
+                            <circle
+                              cx="9"
+                              cy="9"
+                              r="3.4"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                            />
                             <path
                               d="M3.2 19c.7-3 3-4.6 5.8-4.6S14.1 16 14.8 19"
                               stroke="currentColor"
@@ -160,7 +175,13 @@ interface Chip {
                         (click)="store.mover(t.servicio.id, -1)"
                         [attr.aria-label]="'Adelantar ' + t.servicio.nombre"
                       >
-                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          aria-hidden="true"
+                        >
                           <path
                             d="M4 10 8 6l4 4"
                             stroke="currentColor"
@@ -177,7 +198,13 @@ interface Chip {
                         (click)="store.mover(t.servicio.id, 1)"
                         [attr.aria-label]="'Atrasar ' + t.servicio.nombre"
                       >
-                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          aria-hidden="true"
+                        >
                           <path
                             d="M4 6l4 4 4-4"
                             stroke="currentColor"
@@ -199,11 +226,15 @@ interface Chip {
               (elegir)="elegirDia($event)"
             />
 
-            @if (store.fecha()) {
-              @if (horarios().manana.length || horarios().tarde.length) {
-                <!-- Bloque elegido: se pinta el rango completo, no una hora sola -->
-                @if (store.hora(); as inicio) {
-                  <div class="bloque-elegido">
+            <!-- Alto reservado: elegir día, hora o profesional cambia el
+                 contenido de acá adentro sin correr el botón de abajo. -->
+            <div class="zona-horarios">
+              @if (store.fecha()) {
+                @if (horarios().manana.length || horarios().tarde.length) {
+                  <!-- Bloque elegido: se pinta el rango completo, no una hora sola.
+                       Siempre presente: sin hora elegida guía, y su alto ya está
+                       reservado para que nada salte al elegir. -->
+                  <div class="bloque-elegido" [class.vacio]="!store.hora()">
                     <span class="bloque-icono" aria-hidden="true">
                       <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
                         <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6" />
@@ -216,68 +247,75 @@ interface Chip {
                       </svg>
                     </span>
                     <span class="bloque-texto">
-                      Tu visita: <b>{{ inicio }} – {{ store.finBloque() }} hs</b>
-                      <i>({{ duracion(store.duracionBloque()) }})</i>
+                      @if (store.hora(); as inicio) {
+                        Tu visita: <b>{{ inicio }} – {{ store.finBloque() }} hs</b>
+                        <i>&nbsp;({{ duracion(store.duracionBloque()) }})</i>
+                      } @else {
+                        Elegí un horario para ver el rango de tu visita.
+                      }
                     </span>
                   </div>
-                }
 
-                @for (franja of franjas(); track franja.clave) {
-                  @if (franja.chips.length) {
-                    <h4 class="franja">{{ franja.nombre }}</h4>
-                    <div class="horarios">
-                      @for (chip of franja.chips; track chip.hora) {
-                        <div class="hora-caja">
-                          <button
-                            type="button"
-                            class="hora"
-                            [class.elegida]="chip.enBloque"
-                            [attr.aria-pressed]="chip.enBloque"
-                            (click)="elegirHora(chip.hora)"
-                          >
-                            {{ chip.hora }}
-                          </button>
-                          <!-- Toda hora que ocupa la visita se suelta desde su propia cruz -->
-                          @if (chip.enBloque) {
+                  @for (franja of franjas(); track franja.clave) {
+                    @if (franja.chips.length) {
+                      <h4 class="franja">{{ franja.nombre }}</h4>
+                      <div class="horarios">
+                        @for (chip of franja.chips; track chip.hora) {
+                          <div class="hora-caja">
                             <button
                               type="button"
-                              class="soltar"
-                              (click)="store.soltarBloque()"
-                              aria-label="Quitar el horario elegido"
-                              title="Quitar el horario elegido"
+                              class="hora"
+                              [class.elegida]="chip.enBloque"
+                              [attr.aria-pressed]="chip.enBloque"
+                              (click)="elegirHora(chip.hora)"
                             >
-                              <svg viewBox="0 0 12 12" width="9" height="9" fill="none" aria-hidden="true">
-                                <path
-                                  d="M3 3l6 6M9 3l-6 6"
-                                  stroke="currentColor"
-                                  stroke-width="1.8"
-                                  stroke-linecap="round"
-                                />
-                              </svg>
+                              {{ chip.hora }}
                             </button>
-                          }
-                        </div>
-                      }
-                    </div>
+                            <!-- Toda hora que ocupa la visita se suelta desde su propia cruz -->
+                            @if (chip.enBloque) {
+                              <button
+                                type="button"
+                                class="soltar"
+                                (click)="store.soltarBloque()"
+                                aria-label="Quitar el horario elegido"
+                                title="Quitar el horario elegido"
+                              >
+                                <svg
+                                  viewBox="0 0 12 12"
+                                  width="9"
+                                  height="9"
+                                  fill="none"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M3 3l6 6M9 3l-6 6"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                  />
+                                </svg>
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
                   }
+                } @else {
+                  <div class="sin-horarios">
+                    <p class="sin-titulo">{{ mensajeSinCupo().titulo }}</p>
+                    <p class="sin-detalle">{{ mensajeSinCupo().detalle }}</p>
+                    @if (mensajeSinCupo().separar) {
+                      <button type="button" class="btn btn-borde" (click)="volver()">
+                        Agendarlos por separado
+                      </button>
+                    }
+                  </div>
                 }
-                <div class="aviso">
-                  ⚠ Los horarios podrían agotarse, ¡reservá lo antes posible!
-                </div>
               } @else {
-                <div class="sin-horarios">
-                  <p class="sin-titulo">{{ mensajeSinCupo().titulo }}</p>
-                  <p class="sin-detalle">{{ mensajeSinCupo().detalle }}</p>
-                  @if (mensajeSinCupo().separar) {
-                    <button type="button" class="btn btn-borde" (click)="volver()">
-                      Agendarlos por separado
-                    </button>
-                  }
-                </div>
+                <p class="elegi-dia">Elegí un día para ver los horarios disponibles.</p>
               }
-            } @else {
-              <p class="elegi-dia">Elegí un día para ver los horarios disponibles.</p>
-            }
+            </div>
 
             <!-- Siempre a la vista, atenuado hasta que el bloque esté resuelto. -->
             <button
@@ -364,7 +402,9 @@ interface Chip {
       cursor: grab;
       flex-shrink: 0;
       touch-action: none;
-      transition: color 0.18s ease, background 0.18s ease;
+      transition:
+        color 0.18s ease,
+        background 0.18s ease;
     }
     .tramo:hover .agarre {
       color: var(--primario);
@@ -410,7 +450,9 @@ interface Chip {
       }
       to {
         scale: 1.015;
-        box-shadow: 0 14px 30px -10px rgba(22, 48, 47, 0.3), 0 2px 6px rgba(22, 48, 47, 0.08);
+        box-shadow:
+          0 14px 30px -10px rgba(22, 48, 47, 0.3),
+          0 2px 6px rgba(22, 48, 47, 0.08);
       }
     }
     /* Al soltar, la tarjeta baja al hueco y apoya la sombra en el mismo tramo */
@@ -418,7 +460,9 @@ interface Chip {
       animation: none;
       scale: 1;
       box-shadow: 0 0 0 rgba(22, 48, 47, 0);
-      transition: transform 240ms cubic-bezier(0.2, 0, 0, 1), scale 240ms cubic-bezier(0.2, 0, 0, 1),
+      transition:
+        transform 240ms cubic-bezier(0.2, 0, 0, 1),
+        scale 240ms cubic-bezier(0.2, 0, 0, 1),
         box-shadow 240ms ease;
     }
 
@@ -525,7 +569,9 @@ interface Chip {
       border: 1.5px solid var(--borde);
       border-radius: 999px;
       padding: 0.2rem 0.6rem 0.2rem 0.2rem;
-      transition: border-color 0.15s ease, background 0.15s ease;
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
     }
     .globo:hover {
       border-color: var(--primario);
@@ -575,6 +621,21 @@ interface Chip {
       font-size: 0.7rem;
     }
 
+    /* Alto reservado para todo lo que cambia al elegir día, hora o
+       profesional. Sin esto el botón de continuar sube y baja en cada toque. */
+    .zona-horarios {
+      min-height: 292px;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Los estados sin horarios se centran en el hueco reservado: así se ve
+       intencional y no como una tarjeta a medio llenar. */
+    .zona-horarios > .elegi-dia,
+    .zona-horarios > .sin-horarios {
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+
     /* Resumen del bloque elegido, arriba de los horarios */
     .bloque-elegido {
       display: flex;
@@ -603,6 +664,14 @@ interface Chip {
       font-style: normal;
       font-size: 0.8rem;
     }
+    /* Todavía sin hora: mismo lugar, sin gritar que hay algo elegido. */
+    .bloque-elegido.vacio {
+      background: var(--fondo);
+    }
+    .bloque-elegido.vacio .bloque-icono,
+    .bloque-elegido.vacio .bloque-texto {
+      color: var(--neutro);
+    }
 
     .franja {
       margin: 1.4rem 0 0.6rem;
@@ -615,8 +684,8 @@ interface Chip {
       padding-top: 1.1rem;
     }
     .horarios {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
       gap: 0.6rem;
     }
     /* La caja deja lugar a la cruz sin recortarla */
@@ -626,6 +695,7 @@ interface Chip {
       padding-right: 5px;
     }
     .hora {
+      width: 100%;
       border: 1.5px solid var(--borde);
       background: var(--blanco);
       border-radius: 999px;
@@ -657,22 +727,15 @@ interface Chip {
       place-items: center;
       padding: 0;
       line-height: 0;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease;
     }
     .soltar:hover {
       background: var(--primario);
       color: var(--blanco);
     }
 
-    .aviso {
-      margin-top: 1.25rem;
-      background: var(--terciario-suave);
-      color: var(--terciario-oscuro);
-      border-radius: var(--radio-chico);
-      padding: 0.7rem 1rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
     /* Día sin horarios: decimos por qué y ofrecemos la salida */
     .sin-horarios {
       margin-top: 1.5rem;
@@ -693,11 +756,14 @@ interface Chip {
     .sin-horarios .btn {
       margin-top: 1rem;
     }
+    /* Estado vacío dentro del hueco reservado: centrado y sin separador, así
+       se lee como "acá van a aparecer los horarios" y no como algo cortado. */
     .elegi-dia {
       color: var(--neutro);
-      margin: 1.5rem 0 0;
-      border-top: 1px solid var(--borde);
-      padding-top: 1.25rem;
+      text-align: center;
+      font-size: 0.9rem;
+      margin: 0;
+      padding: 0 1rem;
     }
     .continuar {
       width: 100%;
@@ -720,6 +786,32 @@ interface Chip {
     @media (max-width: 720px) {
       .calendario {
         padding: 1rem;
+      }
+      /* Con la tarjeta más angosta los horarios ocupan más filas, así que el
+         hueco reservado tiene que ser más alto que en escritorio. */
+      .zona-horarios {
+        min-height: 428px;
+      }
+      /* Acá el texto guía entra en dos líneas y el del turno elegido en una:
+         sin un alto fijo, elegir la hora encoge la caja y corre los horarios. */
+      .bloque-elegido {
+        min-height: 62px;
+      }
+      /* El dedo necesita más blanco que el puntero */
+      .volver {
+        padding: 0.5rem 0;
+        min-height: 40px;
+      }
+      .soltar {
+        width: 24px;
+        height: 24px;
+      }
+      .hora {
+        padding: 0.62rem 0.6rem;
+      }
+      .hora-caja {
+        padding-top: 7px;
+        padding-right: 7px;
       }
       .tramo {
         padding: 0.65rem 0.7rem;
@@ -839,12 +931,8 @@ export class Agendar {
     switch (motivo) {
       case 'profesional-no-atiende': {
         // El pedido del usuario es lo que bloquea la fecha: se lo decimos.
-        const quienes = fecha
-          ? this.disponibilidad.fijadosQueNoAtienden(consulta, fecha)
-          : [];
-        const detalle = quienes
-          .map((p) => `${p.nombre} atiende ${diasDeAtencion(p)}`)
-          .join('. ');
+        const quienes = fecha ? this.disponibilidad.fijadosQueNoAtienden(consulta, fecha) : [];
+        const detalle = quienes.map((p) => `${p.nombre} atiende ${diasDeAtencion(p)}`).join('. ');
         return {
           titulo:
             quienes.length === 1

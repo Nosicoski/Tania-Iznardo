@@ -18,9 +18,7 @@ import { duracionTexto, precioARS } from '../datos/formato';
             <div class="detalle-cabecera">
               <span class="detalle-titulo">Tu visita</span>
               @if (store.cantidad() > 1) {
-                <span class="detalle-orden">
-                  Se hacen uno después del otro, en este orden
-                </span>
+                <span class="detalle-orden"> Se hacen uno después del otro, en este orden </span>
               }
             </div>
 
@@ -43,7 +41,13 @@ import { duracionTexto, precioARS } from '../datos/formato';
                         (click)="store.mover(s.id, -1)"
                         [attr.aria-label]="'Adelantar ' + s.nombre"
                       >
-                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          aria-hidden="true"
+                        >
                           <path
                             d="M4 10 8 6l4 4"
                             stroke="currentColor"
@@ -60,7 +64,13 @@ import { duracionTexto, precioARS } from '../datos/formato';
                         (click)="store.mover(s.id, 1)"
                         [attr.aria-label]="'Atrasar ' + s.nombre"
                       >
-                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          aria-hidden="true"
+                        >
                           <path
                             d="M4 6l4 4 4-4"
                             stroke="currentColor"
@@ -99,13 +109,10 @@ import { duracionTexto, precioARS } from '../datos/formato';
             }
             @if (store.esReservaUnica()) {
               <p class="nota">
-                Este servicio se reserva solo: no se combina con otros en la misma
-                visita.
+                Este servicio se reserva solo: no se combina con otros en la misma visita.
               </p>
             } @else if (store.topeAlcanzado()) {
-              <p class="nota">
-                Llegaste al máximo de {{ tope }} servicios por visita.
-              </p>
+              <p class="nota">Llegaste al máximo de {{ tope }} servicios por visita.</p>
             }
           </div>
         }
@@ -119,7 +126,12 @@ import { duracionTexto, precioARS } from '../datos/formato';
             aria-controls="carrito-detalle"
           >
             <span class="carrito-titulo">
-              {{ titulo() }}
+              <!--
+                El texto necesita su propio span: los cortes con puntos
+                suspensivos no funcionan sobre un contenedor flex, y sin esto
+                el nombre largo empuja el chevron fuera de la pantalla.
+              -->
+              <span class="carrito-nombre">{{ titulo() }}</span>
               <span class="chevron" [class.girado]="abierto()" aria-hidden="true">
                 <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
                   <path
@@ -218,10 +230,15 @@ import { duracionTexto, precioARS } from '../datos/formato';
       font-size: 0.95rem;
       font-weight: 700;
       color: var(--secundario);
+      max-width: 100%;
+      min-width: 0;
+    }
+    /* El corte va acá, no en el flex: el chevron siempre queda a la vista. */
+    .carrito-nombre {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 100%;
+      min-width: 0;
     }
     .chevron {
       color: var(--neutro);
@@ -262,7 +279,9 @@ import { duracionTexto, precioARS } from '../datos/formato';
       color: var(--neutro);
       display: grid;
       place-items: center;
-      transition: border-color 0.15s ease, color 0.15s ease;
+      transition:
+        border-color 0.15s ease,
+        color 0.15s ease;
     }
     .carrito-vaciar:hover {
       border-color: #b3392f;

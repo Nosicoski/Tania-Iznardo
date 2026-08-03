@@ -348,6 +348,14 @@ import { ModalProfesionales } from './modal-profesionales';
         width: 52px;
         height: 52px;
       }
+      /* "Ver horario", WhatsApp y demás enlaces del perfil medían 18px de
+         alto: se tocan con el pulgar, necesitan blanco alrededor. */
+      .perfil-link {
+        padding: 0.35rem 0;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+      }
     }
   `,
 })

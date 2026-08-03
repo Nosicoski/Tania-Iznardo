@@ -826,6 +826,17 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       .solapas {
         grid-template-columns: 1fr;
       }
+      /* Objetivos táctiles: el ojo de la contraseña medía 23px y el enlace a
+         iniciar sesión 17px de alto. */
+      .ojo {
+        width: 40px;
+        height: 40px;
+        margin-right: -0.4rem;
+      }
+      .enlace {
+        padding: 0.4rem 0;
+        min-height: 36px;
+      }
     }
   `,
 })

@@ -85,134 +85,146 @@ const MAX_IMAGENES = 3;
           </div>
 
           <section class="grupos">
-          @for (g of grupos(); track g.nombre) {
-            <div class="grupo" [id]="ancla(g.nombre)">
-              <button
-                type="button"
-                class="grupo-cabecera"
-                (click)="alternarGrupo(g.nombre)"
-                [attr.aria-expanded]="abierto() === g.nombre"
-              >
-                <span class="grupo-titulo">
-                  <b>{{ g.nombre }}</b>
-                  <i>· {{ g.tagline }}</i>
-                </span>
-                <span class="grupo-signo">{{ abierto() === g.nombre ? '−' : '+' }}</span>
-              </button>
+            @for (g of grupos(); track g.nombre) {
+              <div class="grupo" [id]="ancla(g.nombre)">
+                <button
+                  type="button"
+                  class="grupo-cabecera"
+                  (click)="alternarGrupo(g.nombre)"
+                  [attr.aria-expanded]="abierto() === g.nombre"
+                >
+                  <span class="grupo-titulo">
+                    <b>{{ g.nombre }}</b>
+                    <i>· {{ g.tagline }}</i>
+                  </span>
+                  <span class="grupo-signo">{{ abierto() === g.nombre ? '−' : '+' }}</span>
+                </button>
 
-              @if (abierto() === g.nombre) {
-                <div class="grupo-cuerpo">
-                  @for (s of g.servicios; track s.id) {
-                    <article class="servicio">
-                      <header class="servicio-cabecera">
-                        <h3>{{ s.nombre }}</h3>
-                        @if (s.badge) {
-                          <span class="badge">{{ s.badge }}</span>
-                        }
-                      </header>
-                      <div class="meta">
-                        <span>{{ s.duracionMin }} min</span>
-                        <b class="precio">{{ precio(s.precio) }}</b>
-                        @if (!combinable(s)) {
-                          <span
-                            class="tag-unica"
-                            title="Se reserva solo: no se combina con otros servicios en la misma visita"
-                          >
-                            Reserva única
-                          </span>
-                        }
-                      </div>
-                      @if (s.imagenes?.length) {
-                        <div class="fotos">
-                          @for (img of s.imagenes!.slice(0, maxImagenes); track img) {
-                            <img class="foto" [src]="img" alt="" aria-hidden="true" />
+                @if (abierto() === g.nombre) {
+                  <div class="grupo-cuerpo">
+                    @for (s of g.servicios; track s.id) {
+                      <article class="servicio">
+                        <header class="servicio-cabecera">
+                          <h3>{{ s.nombre }}</h3>
+                          @if (s.badge) {
+                            <span class="badge">{{ s.badge }}</span>
+                          }
+                        </header>
+                        <div class="meta">
+                          <span>{{ s.duracionMin }} min</span>
+                          <b class="precio">{{ precio(s.precio) }}</b>
+                          @if (!combinable(s)) {
+                            <span
+                              class="tag-unica"
+                              title="Se reserva solo: no se combina con otros servicios en la misma visita"
+                            >
+                              Reserva única
+                            </span>
                           }
                         </div>
-                      }
-                      <p class="descripcion">{{ s.descripcion }}</p>
-                      @if (s.requisitos) {
-                        <p class="requisitos">
-                          <span class="requisitos-icono" aria-hidden="true">
-                            <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
-                              <circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.5" />
-                              <path
-                                d="M8 5.2v3.4"
-                                stroke="currentColor"
-                                stroke-width="1.6"
-                                stroke-linecap="round"
-                              />
-                              <circle cx="8" cy="11" r="0.9" fill="currentColor" />
-                            </svg>
-                          </span>
-                          Requisitos previos
-                        </p>
-                      }
-                      @if (expandido() === s.id) {
-                        <p class="detalle">{{ s.detalle }}</p>
-                      }
-                      <footer class="servicio-pie">
-                        <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
-                          {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
-                        </button>
-                        <!-- Ya en la visita: tacho · 1 · + (uno por servicio) -->
-                        @if (store.enVisita(s.id)) {
-                          <div class="stepper" [class.pulso]="pulso() === s.id">
-                            <button
-                              type="button"
-                              class="stepper-btn stepper-quitar"
-                              (click)="store.quitar(s.id)"
-                              [attr.aria-label]="'Quitar ' + s.nombre + ' de la visita'"
-                            >
-                              <svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">
-                                <path
-                                  d="M4 6h12M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6m-6 0v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6"
+                        @if (s.imagenes?.length) {
+                          <div class="fotos">
+                            @for (img of s.imagenes!.slice(0, maxImagenes); track img) {
+                              <img class="foto" [src]="img" alt="" aria-hidden="true" />
+                            }
+                          </div>
+                        }
+                        <p class="descripcion">{{ s.descripcion }}</p>
+                        @if (s.requisitos) {
+                          <p class="requisitos">
+                            <span class="requisitos-icono" aria-hidden="true">
+                              <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
+                                <circle
+                                  cx="8"
+                                  cy="8"
+                                  r="6.2"
                                   stroke="currentColor"
-                                  stroke-width="1.4"
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
+                                  stroke-width="1.5"
                                 />
+                                <path
+                                  d="M8 5.2v3.4"
+                                  stroke="currentColor"
+                                  stroke-width="1.6"
+                                  stroke-linecap="round"
+                                />
+                                <circle cx="8" cy="11" r="0.9" fill="currentColor" />
                               </svg>
-                            </button>
-                            <span class="stepper-cant">1</span>
+                            </span>
+                            Requisitos previos
+                          </p>
+                        }
+                        @if (expandido() === s.id) {
+                          <p class="detalle">{{ s.detalle }}</p>
+                        }
+                        <footer class="servicio-pie">
+                          <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
+                            {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
+                          </button>
+                          <!-- Ya en la visita: tacho · 1 · + (uno por servicio) -->
+                          @if (store.enVisita(s.id)) {
+                            <div class="stepper" [class.pulso]="pulso() === s.id">
+                              <button
+                                type="button"
+                                class="stepper-btn stepper-quitar"
+                                (click)="store.quitar(s.id)"
+                                [attr.aria-label]="'Quitar ' + s.nombre + ' de la visita'"
+                              >
+                                <svg
+                                  viewBox="0 0 20 20"
+                                  width="15"
+                                  height="15"
+                                  fill="none"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M4 6h12M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6m-6 0v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                              <span class="stepper-cant">1</span>
+                              <button
+                                type="button"
+                                class="stepper-btn stepper-sumar"
+                                disabled
+                                title="Un turno por servicio en cada visita"
+                                aria-label="Un turno por servicio en cada visita"
+                              >
+                                +
+                              </button>
+                            </div>
+                          } @else if (store.hayServicios()) {
                             <button
                               type="button"
-                              class="stepper-btn stepper-sumar"
-                              disabled
-                              title="Un turno por servicio en cada visita"
-                              aria-label="Un turno por servicio en cada visita"
+                              class="btn-mas"
+                              [class.pulso]="pulso() === s.id"
+                              [disabled]="impedimento(s) === 'tope'"
+                              [attr.title]="motivo(s)"
+                              (click)="agendar(s)"
+                              [attr.aria-label]="'Agregar ' + s.nombre + ' a la visita'"
                             >
                               +
                             </button>
-                          </div>
-                        } @else if (store.hayServicios()) {
-                          <button
-                            type="button"
-                            class="btn-mas"
-                            [class.pulso]="pulso() === s.id"
-                            [disabled]="impedimento(s) === 'tope'"
-                            [attr.title]="motivo(s)"
-                            (click)="agendar(s)"
-                            [attr.aria-label]="'Agregar ' + s.nombre + ' a la visita'"
-                          >
-                            +
-                          </button>
-                        } @else {
-                          <button
-                            type="button"
-                            class="btn btn-primario"
-                            [class.pulso]="pulso() === s.id"
-                            (click)="agendar(s)"
-                          >
-                            Agregar a mi visita
-                          </button>
-                        }
-                      </footer>
-                    </article>
-                  }
-                </div>
-              }
-            </div>
-          }
+                          } @else {
+                            <button
+                              type="button"
+                              class="btn btn-primario"
+                              [class.pulso]="pulso() === s.id"
+                              (click)="agendar(s)"
+                            >
+                              Agregar a mi visita
+                            </button>
+                          }
+                        </footer>
+                      </article>
+                    }
+                  </div>
+                }
+              </div>
+            }
           </section>
         </div>
       </div>
@@ -264,15 +276,14 @@ const MAX_IMAGENES = 3;
           <h2 id="modal-titulo">Este servicio se reserva solo</h2>
           @if (combinable(nuevo)) {
             <p class="modal-texto">
-              Tu visita tiene <b>{{ store.carrito()[0].nombre }}</b>, que se reserva
-              solo y no se combina con otros servicios. Si querés
+              Tu visita tiene <b>{{ store.carrito()[0].nombre }}</b
+              >, que se reserva solo y no se combina con otros servicios. Si querés
               <b>{{ nuevo.nombre }}</b> vamos a reemplazarlo.
             </p>
           } @else {
             <p class="modal-texto">
-              <b>{{ nuevo.nombre }}</b> se reserva solo, sin otros servicios en la
-              misma visita. Si lo elegís vamos a vaciar tu visita actual
-              ({{ store.cantidad() }}
+              <b>{{ nuevo.nombre }}</b> se reserva solo, sin otros servicios en la misma visita. Si
+              lo elegís vamos a vaciar tu visita actual ({{ store.cantidad() }}
               {{ store.cantidad() === 1 ? 'servicio' : 'servicios' }}).
             </p>
           }
@@ -377,11 +388,15 @@ const MAX_IMAGENES = 3;
       letter-spacing: 0.02em;
     }
     .globo-profe:hover .avatar {
-      box-shadow: 0 0 0 3px var(--blanco), 0 0 0 5px var(--borde);
+      box-shadow:
+        0 0 0 3px var(--blanco),
+        0 0 0 5px var(--borde);
     }
     /* Anillo doble = profesional por el que se está filtrando */
     .globo-profe.activo .avatar {
-      box-shadow: 0 0 0 3px var(--blanco), 0 0 0 5px var(--primario);
+      box-shadow:
+        0 0 0 3px var(--blanco),
+        0 0 0 5px var(--primario);
     }
     .globo-nombre {
       font-size: 0.72rem;
@@ -621,7 +636,9 @@ const MAX_IMAGENES = 3;
       display: grid;
       place-items: center;
       flex-shrink: 0;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease;
     }
     .btn-mas:hover:not(:disabled) {
       background: var(--primario-suave);
@@ -650,7 +667,9 @@ const MAX_IMAGENES = 3;
       display: grid;
       place-items: center;
       flex-shrink: 0;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease;
     }
     .stepper-quitar {
       color: #b3392f;
@@ -776,6 +795,24 @@ const MAX_IMAGENES = 3;
       .modal-acciones .btn {
         width: 100%;
       }
+      /* Objetivos táctiles: con el pulgar, 20px de cruz no se aciertan. */
+      .quitar-filtro {
+        width: 26px;
+        height: 26px;
+        top: -4px;
+        right: 4px;
+      }
+      .mas-info {
+        padding: 0.45rem 0;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+      }
+      /* Quitar y sumar el servicio: 28px es chico para el pulgar. */
+      .stepper-btn {
+        width: 36px;
+        height: 36px;
+      }
     }
   `,
 })
@@ -825,8 +862,7 @@ export class SeleccionServicio {
     return GRUPOS.map((g) => ({
       ...g,
       servicios: SERVICIOS.filter(
-        (s) =>
-          s.categoria === g.nombre && (!profesional || ofrece(profesional, s.id))
+        (s) => s.categoria === g.nombre && (!profesional || ofrece(profesional, s.id)),
       ),
     })).filter((g) => g.servicios.length > 0);
   });
@@ -841,9 +877,7 @@ export class SeleccionServicio {
 
   /** El profesional pedido para todos los servicios de la visita, si hay uno solo. */
   private profesionalDeLaVisita(): Profesional | null {
-    const pedidos = this.store
-      .carrito()
-      .map((s) => this.store.profesionalFijado(s.id));
+    const pedidos = this.store.carrito().map((s) => this.store.profesionalFijado(s.id));
     const unico = pedidos[0];
     if (!unico || pedidos.some((p) => p !== unico)) {
       return null;
@@ -863,7 +897,13 @@ export class SeleccionServicio {
   }
 
   protected ancla(nombre: string): string {
-    return 'grupo-' + nombre.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-');
+    return (
+      'grupo-' +
+      nombre
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[^a-z0-9]+/g, '-')
+    );
   }
 
   protected alternarGrupo(nombre: string): void {

@@ -430,6 +430,27 @@ const PREPARATIVOS = [
         width: 100%;
       }
     }
+    /* En pantallas angostas la fila etiqueta/valor deja al valor un canal de
+       cien y pico de píxeles: cada dato queda cortado en tres renglones. */
+    @media (max-width: 480px) {
+      .detalle div {
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      .detalle dd,
+      .detalle .cuando dd {
+        text-align: left;
+      }
+      .turno dd {
+        display: flex;
+        gap: 0.6rem;
+        align-items: baseline;
+      }
+      .turno dd .hora,
+      .turno dd .dur {
+        display: inline;
+      }
+    }
   `,
 })
 export class Confirmado {
