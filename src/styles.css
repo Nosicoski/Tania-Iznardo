@@ -154,15 +154,6 @@ a {
   }
 }
 
-/* La confirmación del turno entra completa en pantalla: se apaga el scroll para
-   que se lea de un vistazo. Solo en pantallas grandes: si la ventana es baja o
-   angosta el contenido no entra y el scroll tiene que seguir estando. */
-@media (min-width: 901px) and (min-height: 700px) {
-  body:has(app-confirmado) {
-    overflow: hidden;
-  }
-}
-
 /* ==========================================================================
    Aparición al hacer scroll (landing /webp)
    Global porque la directiva `webpRevelar` marca elementos que viven dentro de
