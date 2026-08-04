@@ -8,7 +8,7 @@ import { ReservaStore } from '../servicios/reserva-store';
 import { Disponibilidad, MotivoSinCupo } from '../servicios/disponibilidad';
 import { AgendaGuardada } from '../servicios/agenda-guardada';
 import { diasDeAtencion, inicialesDe, profesionalesPara } from '../datos/profesionales';
-import { combinablesDe } from '../datos/catalogo';
+import { combinablesDe, imagenDe } from '../datos/catalogo';
 import { duracionTexto, precioARS } from '../datos/formato';
 import { Profesional, Tramo } from '../modelos';
 
@@ -68,13 +68,7 @@ interface Chip {
                   >
                     <span class="globo-avatar avatar-todos" aria-hidden="true">
                       <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
-                        <circle
-                          cx="9"
-                          cy="9"
-                          r="3.4"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                        />
+                        <circle cx="9" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
                         <path
                           d="M3.2 19c.7-3 3-4.6 5.8-4.6S14.1 16 14.8 19"
                           stroke="currentColor"
@@ -225,7 +219,7 @@ interface Chip {
         </div>
 
         <ng-template #combinarTpl>
-          <p class="combinar-titulo">
+          <div class="combinar-encabezado">
             <span class="combinar-icono" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
                 <path
@@ -236,18 +230,51 @@ interface Chip {
                 />
               </svg>
             </span>
-            ¿Aprovechás y sumás otro servicio? Lo agendás aparte, con su propio horario.
-          </p>
+            <span class="combinar-copy">
+              <b>¿Aprovechás y sumás otro servicio?</b>
+              <i>Se agenda aparte, con su propio día y horario.</i>
+            </span>
+          </div>
+
           @for (c of combinables(); track c.id) {
-            <div class="combinable" [class.elegido]="elegido(c.id)">
-              <span class="combinable-textos">
-                <strong>{{ c.nombre }}</strong>
-                <span>{{ duracion(c.duracionMin) }} · {{ precio(c.precio) }}</span>
-              </span>
+            <article class="combinable" [class.elegido]="elegido(c.id)">
+              <div class="combinable-cabecera">
+                <span class="combinable-foto">
+                  @if (conImagen(c.id)) {
+                    <img [src]="imagen(c)" alt="" aria-hidden="true" (error)="imagenRota(c.id)" />
+                  } @else {
+                    <span class="combinable-inicial" aria-hidden="true">{{ c.nombre[0] }}</span>
+                  }
+                  <!-- El tilde tapa la foto: se ve elegido de un vistazo. -->
+                  @if (elegido(c.id)) {
+                    <span class="combinable-tilde" aria-hidden="true">
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
+                        <path
+                          d="M3 8.5 6.5 12 13 4.5"
+                          stroke="currentColor"
+                          stroke-width="2.4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  }
+                </span>
+                <span class="combinable-textos">
+                  <strong>{{ c.nombre }}</strong>
+                  <span class="combinable-meta">
+                    <span>{{ duracion(c.duracionMin) }}</span>
+                    <b>{{ precio(c.precio) }}</b>
+                  </span>
+                </span>
+              </div>
+              <!-- El botón va en su propia fila: el texto largo del estado
+                   elegido no le come el ancho al nombre del servicio. -->
               <button
                 type="button"
                 class="combinable-btn"
                 [class.activo]="elegido(c.id)"
+                [attr.aria-pressed]="elegido(c.id)"
                 (click)="alternarCombinable(c.id)"
               >
                 @if (elegido(c.id)) {
@@ -262,10 +289,18 @@ interface Chip {
                   </svg>
                   Agendamos después
                 } @else {
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 5v14M5 12h14"
+                      stroke="currentColor"
+                      stroke-width="2.6"
+                      stroke-linecap="round"
+                    />
+                  </svg>
                   Me interesa
                 }
               </button>
-            </div>
+            </article>
           }
         </ng-template>
       }
@@ -509,77 +544,151 @@ interface Chip {
       top: 1rem;
     }
     .combinar-panel {
-      padding: 1.1rem 1.25rem;
+      padding: 1.1rem 1.15rem 1.15rem;
       border-left: 4px solid var(--terciario);
     }
     .combinar-mobile {
       display: none;
       margin-top: auto;
       padding-top: 1.1rem;
+      border-top: 1px solid var(--borde);
     }
-    .combinar-titulo {
+    .combinar-encabezado {
       display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      margin: 0 0 0.55rem;
-      color: var(--neutro);
-      font-size: 0.8rem;
-      font-weight: 600;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
     }
     .combinar-icono {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: var(--terciario-suave);
       color: var(--terciario-oscuro);
       display: grid;
       place-items: center;
       flex-shrink: 0;
+      margin-top: 1px;
     }
-    .combinable {
+    .combinar-copy {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
+    }
+    .combinar-copy b {
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: var(--secundario);
+      line-height: 1.3;
+    }
+    .combinar-copy i {
+      font-style: normal;
+      font-size: 0.76rem;
+      color: var(--neutro);
+      line-height: 1.35;
+    }
+
+    .combinable {
       background: var(--fondo);
-      border: 1.5px solid transparent;
+      border: 1.5px solid var(--borde);
       border-radius: var(--radio-chico);
-      padding: 0.5rem 0.7rem;
-      margin-bottom: 0.4rem;
+      padding: 0.6rem;
+      margin-bottom: 0.5rem;
       transition:
         border-color 0.15s ease,
-        background 0.15s ease;
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+    .combinable:last-child {
+      margin-bottom: 0;
+    }
+    .combinable:hover {
+      border-color: var(--primario);
+      box-shadow: var(--sombra);
     }
     .combinable.elegido {
       background: var(--primario-suave);
       border-color: var(--primario);
     }
+    .combinable-cabecera {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    /* Foto del servicio: si el archivo no está, queda la inicial sobre el
+       fondo de la marca en vez de un recuadro roto. */
+    .combinable-foto {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      flex-shrink: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--primario-suave);
+      color: var(--primario);
+      display: grid;
+      place-items: center;
+    }
+    .combinable-foto img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .combinable-inicial {
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+    .combinable-tilde {
+      position: absolute;
+      inset: 0;
+      background: rgba(52, 129, 126, 0.72);
+      color: var(--blanco);
+      display: grid;
+      place-items: center;
+    }
     .combinable-textos {
       display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 0.15rem;
       min-width: 0;
     }
     .combinable-textos strong {
       font-size: 0.82rem;
-      line-height: 1.3;
+      line-height: 1.25;
+      /* Dos líneas como máximo: los nombres largos no estiran la tarjeta. */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
-    .combinable-textos span {
+    .combinable-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
       font-size: 0.75rem;
       color: var(--neutro);
       white-space: nowrap;
     }
+    .combinable-meta b {
+      color: var(--primario);
+      font-weight: 800;
+    }
+    /* Ancho completo y en su propia fila: el botón cambia de texto al
+       elegirlo y así nunca le roba lugar al nombre del servicio. */
     .combinable-btn {
-      flex-shrink: 0;
+      width: 100%;
+      margin-top: 0.6rem;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 0.35rem;
       border: 1.5px solid var(--primario);
       background: var(--blanco);
       color: var(--primario);
       border-radius: 999px;
-      padding: 0.35rem 0.85rem;
+      padding: 0.42rem 0.85rem;
       font-size: 0.78rem;
       font-weight: 700;
       transition:
@@ -592,6 +701,9 @@ interface Chip {
     .combinable-btn.activo {
       background: var(--primario);
       color: var(--blanco);
+    }
+    .combinable-btn.activo:hover {
+      background: var(--primario-oscuro);
     }
 
     /* Estado vacío dentro del hueco reservado: centrado y sin separador, así
@@ -675,8 +787,11 @@ export class Agendar {
   protected readonly iniciales = inicialesDe;
   protected readonly duracion = duracionTexto;
   protected readonly precio = precioARS;
+  protected readonly imagen = imagenDe;
   /** Fotos que no cargaron: caen al avatar con iniciales. */
   private readonly sinFoto = signal<string[]>([]);
+  /** Ídem para las fotos de los combinables. */
+  private readonly sinImagen = signal<string[]>([]);
 
   /**
    * Combinables que se pueden ofrecer: los del servicio en curso, menos los
@@ -777,6 +892,14 @@ export class Agendar {
 
   protected fotoRota(id: string): void {
     this.sinFoto.update((lista) => (lista.includes(id) ? lista : [...lista, id]));
+  }
+
+  protected conImagen(servicioId: string): boolean {
+    return !this.sinImagen().includes(servicioId);
+  }
+
+  protected imagenRota(servicioId: string): void {
+    this.sinImagen.update((lista) => (lista.includes(servicioId) ? lista : [...lista, servicioId]));
   }
 
   /** Solo quienes ofrecen ese servicio puntual (no toda la categoría). */
