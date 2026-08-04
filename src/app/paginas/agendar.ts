@@ -1,224 +1,126 @@
 import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { NavegacionReserva } from '../servicios/navegacion-reserva';
-import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { Stepper } from '../componentes/stepper';
 import { ResumenReserva } from '../componentes/resumen-reserva';
 import { Calendario } from '../componentes/calendario';
 import { ReservaStore } from '../servicios/reserva-store';
 import { Disponibilidad, MotivoSinCupo } from '../servicios/disponibilidad';
+import { AgendaGuardada } from '../servicios/agenda-guardada';
 import { diasDeAtencion, inicialesDe, profesionalesPara } from '../datos/profesionales';
-import { aHora, duracionTexto } from '../datos/formato';
+import { combinablesDe } from '../datos/catalogo';
+import { duracionTexto, precioARS } from '../datos/formato';
 import { Profesional, Tramo } from '../modelos';
 
-/** Un horario ofrecido y su relación con el bloque elegido. */
+/** Un horario ofrecido y su relación con el turno elegido. */
 interface Chip {
   hora: string;
   /**
-   * El bloque elegido ocupa esta franja horaria. Va pintado igual que el
-   * inicio y con su propia cruz: así se ve exactamente cuánto abarca la visita.
+   * El turno elegido ocupa esta franja horaria. Va pintado igual que el
+   * inicio y con su propia cruz: así se ve exactamente cuánto abarca. Un
+   * servicio de 60 minutos que arranca a las 9:30 también ocupa las 10:00.
    */
   enBloque: boolean;
 }
 
 /**
- * Paso 1: día y horario de la visita. Los servicios ya vienen elegidos; acá se
- * resuelve el bloque consecutivo (quién atiende cada tramo y a qué hora) y se
- * puede ajustar el orden o pedir un profesional puntual.
+ * Paso 2: día y horario del turno. El servicio ya viene elegido; acá se
+ * resuelve quién atiende y a qué hora, con la opción de pedir un profesional
+ * puntual.
  */
 @Component({
   selector: 'app-agendar',
-  imports: [Stepper, ResumenReserva, Calendario, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [Stepper, ResumenReserva, Calendario, NgTemplateOutlet],
   template: `
     <app-stepper [paso]="2" />
     <div class="contenedor">
-      @if (store.hayServicios()) {
+      @if (store.servicio(); as servicio) {
         <button type="button" class="volver" (click)="volver()">
           <span aria-hidden="true">←</span> Volver a los servicios
         </button>
 
-        <h1>{{ titulo() }}</h1>
-        <p class="ayuda">
-          {{ duracion(store.duracionServicios()) }} en total ·
-          @if (store.cantidad() > 1) {
-            se hacen uno después del otro, en una sola visita.
-          } @else {
-            elegí el día y el horario.
-          }
-        </p>
+        <h1>{{ servicio.nombre }}</h1>
+        <p class="ayuda">Elegí el día y el horario de tu turno.</p>
 
         <div class="disposicion">
           <section class="tarjeta calendario">
-            <!-- Los servicios de la visita, con su profesional y su orden -->
-            <ol
-              class="tramos"
-              cdkDropList
-              [cdkDropListDisabled]="store.cantidad() < 2"
-              (cdkDropListDropped)="soltarTramo($event)"
-            >
-              @for (t of tramosVista(); track t.servicio.id; let i = $index; let ultimo = $last) {
-                <!--
-                  Sin placeholder propio: el que clona el CDK mide exactamente lo
-                  mismo que la tarjeta, así la lista no cambia de alto al levantarla.
-                -->
-                <li
-                  class="tramo"
-                  [class.resuelto]="!!t.hora"
-                  cdkDrag
-                  [cdkDragLockAxis]="'y'"
-                  [cdkDragStartDelay]="retardoArrastre"
-                  cdkDragBoundary=".tramos"
+            <!-- El servicio elegido, con su duración y su profesional -->
+            <div class="tramo">
+              <div class="tramo-cuerpo">
+                <div class="tramo-titulo">
+                  <strong>{{ servicio.nombre }}</strong>
+                  <span class="tramo-dur">{{ duracion(servicio.duracionMin) }}</span>
+                </div>
+
+                <!-- Profesional del turno: automático o pedido a mano -->
+                <div
+                  class="profes"
+                  role="radiogroup"
+                  [attr.aria-label]="'Profesional para ' + servicio.nombre"
                 >
-                  @if (store.cantidad() > 1) {
-                    <span
-                      class="agarre"
-                      cdkDragHandle
-                      aria-hidden="true"
-                      title="Arrastrá para reordenar"
-                    >
-                      <svg viewBox="0 0 12 16" width="10" height="13" fill="currentColor">
-                        <circle cx="3.5" cy="3" r="1.4" />
-                        <circle cx="8.5" cy="3" r="1.4" />
-                        <circle cx="3.5" cy="8" r="1.4" />
-                        <circle cx="8.5" cy="8" r="1.4" />
-                        <circle cx="3.5" cy="13" r="1.4" />
-                        <circle cx="8.5" cy="13" r="1.4" />
+                  <button
+                    type="button"
+                    class="globo"
+                    role="radio"
+                    [attr.aria-checked]="!fijado(servicio.id)"
+                    [class.activo]="!fijado(servicio.id)"
+                    (click)="fijar(servicio.id, null)"
+                  >
+                    <span class="globo-avatar avatar-todos" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+                        <circle
+                          cx="9"
+                          cy="9"
+                          r="3.4"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                        />
+                        <path
+                          d="M3.2 19c.7-3 3-4.6 5.8-4.6S14.1 16 14.8 19"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M16 7.2a2.9 2.9 0 0 1 0 5.6M17.6 14.8c2 .5 3.4 2 4 4.2"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
                       </svg>
                     </span>
-                  }
-                  <span class="tramo-numero">{{ i + 1 }}</span>
-                  <div class="tramo-cuerpo">
-                    <div class="tramo-titulo">
-                      <strong>{{ t.servicio.nombre }}</strong>
-                      <span class="tramo-dur">{{ t.servicio.duracionMin }} min</span>
-                    </div>
-                    @if (t.hora) {
-                      <span class="tramo-hora">{{ t.hora }} – {{ t.fin }} hs</span>
-                    } @else {
-                      <span class="tramo-hora pendiente">Falta el horario</span>
-                    }
-
-                    <!-- Profesional del tramo: automático o pedido a mano -->
-                    <div
-                      class="profes"
-                      role="radiogroup"
-                      [attr.aria-label]="'Profesional para ' + t.servicio.nombre"
-                    >
-                      <button
-                        type="button"
-                        class="globo"
-                        role="radio"
-                        [attr.aria-checked]="!fijado(t.servicio.id)"
-                        [class.activo]="!fijado(t.servicio.id)"
-                        (click)="fijar(t.servicio.id, null)"
-                      >
-                        <span class="globo-avatar avatar-todos" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
-                            <circle
-                              cx="9"
-                              cy="9"
-                              r="3.4"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                            />
-                            <path
-                              d="M3.2 19c.7-3 3-4.6 5.8-4.6S14.1 16 14.8 19"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                            />
-                            <path
-                              d="M16 7.2a2.9 2.9 0 0 1 0 5.6M17.6 14.8c2 .5 3.4 2 4 4.2"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                            />
-                          </svg>
-                        </span>
-                        <span class="globo-nombre">
-                          @if (t.profesional && !fijado(t.servicio.id)) {
-                            {{ t.profesional.nombre }}
-                            <i class="globo-auto">asignado</i>
-                          } @else {
-                            Cualquiera
-                          }
-                        </span>
-                      </button>
-
-                      @for (p of candidatos(t.servicio.id); track p.id) {
-                        <button
-                          type="button"
-                          class="globo"
-                          role="radio"
-                          [attr.aria-checked]="fijado(t.servicio.id) === p.id"
-                          [class.activo]="fijado(t.servicio.id) === p.id"
-                          (click)="fijar(t.servicio.id, p.id)"
-                        >
-                          <span class="globo-avatar">
-                            @if (conFoto(p)) {
-                              <img [src]="p.foto" [alt]="p.nombre" (error)="fotoRota(p.id)" />
-                            } @else {
-                              <span class="globo-iniciales">{{ iniciales(p.nombre) }}</span>
-                            }
-                          </span>
-                          <span class="globo-nombre">{{ p.nombre }}</span>
-                        </button>
+                    <span class="globo-nombre">
+                      @if (profesionalAsignado(); as p) {
+                        {{ p.nombre }}
+                        <i class="globo-auto">asignado</i>
+                      } @else {
+                        Cualquiera
                       }
-                    </div>
-                  </div>
-
-                  @if (store.cantidad() > 1) {
-                    <span class="flechas">
-                      <button
-                        type="button"
-                        class="flecha"
-                        [disabled]="i === 0"
-                        (click)="store.mover(t.servicio.id, -1)"
-                        [attr.aria-label]="'Adelantar ' + t.servicio.nombre"
-                      >
-                        <svg
-                          viewBox="0 0 16 16"
-                          width="12"
-                          height="12"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M4 10 8 6l4 4"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        class="flecha"
-                        [disabled]="ultimo"
-                        (click)="store.mover(t.servicio.id, 1)"
-                        [attr.aria-label]="'Atrasar ' + t.servicio.nombre"
-                      >
-                        <svg
-                          viewBox="0 0 16 16"
-                          width="12"
-                          height="12"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M4 6l4 4 4-4"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </button>
                     </span>
+                  </button>
+
+                  @for (p of candidatos(servicio.id); track p.id) {
+                    <button
+                      type="button"
+                      class="globo"
+                      role="radio"
+                      [attr.aria-checked]="fijado(servicio.id) === p.id"
+                      [class.activo]="fijado(servicio.id) === p.id"
+                      (click)="fijar(servicio.id, p.id)"
+                    >
+                      <span class="globo-avatar">
+                        @if (conFoto(p)) {
+                          <img [src]="p.foto" [alt]="p.nombre" (error)="fotoRota(p.id)" />
+                        } @else {
+                          <span class="globo-iniciales">{{ iniciales(p.nombre) }}</span>
+                        }
+                      </span>
+                      <span class="globo-nombre">{{ p.nombre }}</span>
+                    </button>
                   }
-                </li>
-              }
-            </ol>
+                </div>
+              </div>
+            </div>
 
             <app-calendario
               [seleccionada]="store.fecha()"
@@ -231,31 +133,6 @@ interface Chip {
             <div class="zona-horarios">
               @if (store.fecha()) {
                 @if (horarios().manana.length || horarios().tarde.length) {
-                  <!-- Bloque elegido: se pinta el rango completo, no una hora sola.
-                       Siempre presente: sin hora elegida guía, y su alto ya está
-                       reservado para que nada salte al elegir. -->
-                  <div class="bloque-elegido" [class.vacio]="!store.hora()">
-                    <span class="bloque-icono" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
-                        <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6" />
-                        <path
-                          d="M10 6v4.2l2.8 1.7"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    </span>
-                    <span class="bloque-texto">
-                      @if (store.hora(); as inicio) {
-                        Tu visita: <b>{{ inicio }} – {{ store.finBloque() }} hs</b>
-                        <i>&nbsp;({{ duracion(store.duracionBloque()) }})</i>
-                      } @else {
-                        Elegí un horario para ver el rango de tu visita.
-                      }
-                    </span>
-                  </div>
-
                   @for (franja of franjas(); track franja.clave) {
                     @if (franja.chips.length) {
                       <h4 class="franja">{{ franja.nombre }}</h4>
@@ -271,7 +148,7 @@ interface Chip {
                             >
                               {{ chip.hora }}
                             </button>
-                            <!-- Toda hora que ocupa la visita se suelta desde su propia cruz -->
+                            <!-- Toda hora que ocupa el turno se suelta desde su propia cruz -->
                             @if (chip.enBloque) {
                               <button
                                 type="button"
@@ -305,19 +182,22 @@ interface Chip {
                   <div class="sin-horarios">
                     <p class="sin-titulo">{{ mensajeSinCupo().titulo }}</p>
                     <p class="sin-detalle">{{ mensajeSinCupo().detalle }}</p>
-                    @if (mensajeSinCupo().separar) {
-                      <button type="button" class="btn btn-borde" (click)="volver()">
-                        Agendarlos por separado
-                      </button>
-                    }
                   </div>
                 }
               } @else {
                 <p class="elegi-dia">Elegí un día para ver los horarios disponibles.</p>
               }
+
+              <!-- En mobile los combinables van acá: dentro del alto que ya
+                   estaba reservado para los horarios, sin agregar scroll. -->
+              @if (combinables().length) {
+                <div class="combinar combinar-mobile">
+                  <ng-container [ngTemplateOutlet]="combinarTpl" />
+                </div>
+              }
             </div>
 
-            <!-- Siempre a la vista, atenuado hasta que el bloque esté resuelto. -->
+            <!-- Siempre a la vista, atenuado hasta que el turno esté resuelto. -->
             <button
               type="button"
               class="btn btn-primario continuar"
@@ -328,12 +208,66 @@ interface Chip {
             </button>
           </section>
 
-          <app-resumen-reserva
-            cta="Continuar"
-            [ctaDeshabilitada]="!store.listaParaDatos()"
-            (ctaClick)="continuar()"
-          />
+          <div class="lateral">
+            <app-resumen-reserva
+              cta="Continuar"
+              [ctaDeshabilitada]="!store.listaParaDatos()"
+              (ctaClick)="continuar()"
+            />
+            <!-- En desktop los combinables aprovechan el blanco que queda
+                 debajo del resumen, sin tocar la columna principal. -->
+            @if (combinables().length) {
+              <aside class="tarjeta combinar combinar-panel">
+                <ng-container [ngTemplateOutlet]="combinarTpl" />
+              </aside>
+            }
+          </div>
         </div>
+
+        <ng-template #combinarTpl>
+          <p class="combinar-titulo">
+            <span class="combinar-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </span>
+            ¿Aprovechás y sumás otro servicio? Lo agendás aparte, con su propio horario.
+          </p>
+          @for (c of combinables(); track c.id) {
+            <div class="combinable" [class.elegido]="elegido(c.id)">
+              <span class="combinable-textos">
+                <strong>{{ c.nombre }}</strong>
+                <span>{{ duracion(c.duracionMin) }} · {{ precio(c.precio) }}</span>
+              </span>
+              <button
+                type="button"
+                class="combinable-btn"
+                [class.activo]="elegido(c.id)"
+                (click)="alternarCombinable(c.id)"
+              >
+                @if (elegido(c.id)) {
+                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" aria-hidden="true">
+                    <path
+                      d="M3 8.5 6.5 12 13 4.5"
+                      stroke="currentColor"
+                      stroke-width="2.4"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Agendamos después
+                } @else {
+                  Me interesa
+                }
+              </button>
+            </div>
+          }
+        </ng-template>
       }
     </div>
   `,
@@ -369,158 +303,16 @@ interface Chip {
       padding: 1.5rem;
     }
 
-    /* Los tramos de la visita, en orden */
-    .tramos {
-      list-style: none;
-      margin: 0 0 0.9rem;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
+    /* El servicio del turno */
     .tramo {
       display: flex;
       align-items: flex-start;
       gap: 0.7rem;
-      background: var(--fondo);
-      border: 1px solid var(--borde);
+      background: var(--primario-suave);
+      border: 1px solid var(--primario);
       border-radius: var(--radio-chico);
       padding: 0.75rem 0.85rem;
-    }
-    .tramo.resuelto {
-      border-color: var(--primario);
-      background: var(--primario-suave);
-    }
-    /* Arrastre: el agarre es lo único que inicia el drag, no toda la tarjeta */
-    .agarre {
-      color: var(--neutro-claro);
-      display: grid;
-      place-items: center;
-      padding: 0.25rem 0.15rem;
-      margin-top: 0.1rem;
-      border-radius: 6px;
-      cursor: grab;
-      flex-shrink: 0;
-      touch-action: none;
-      transition:
-        color 0.18s ease,
-        background 0.18s ease;
-    }
-    .tramo:hover .agarre {
-      color: var(--primario);
-      background: var(--blanco);
-    }
-    .agarre:active {
-      cursor: grabbing;
-    }
-
-    /*
-      Mientras dura el arrastre la lista queda "quieta": el cursor manda en todo
-      el bloque y nada se selecciona por accidente.
-    */
-    .tramos.cdk-drop-list-dragging {
-      cursor: grabbing;
-      user-select: none;
-    }
-    .tramos.cdk-drop-list-dragging .tramo:hover .agarre {
-      color: var(--neutro-claro);
-      background: none;
-    }
-
-    /* La tarjeta que viaja con el cursor: se despega apenas, sin dar un salto */
-    .cdk-drag-preview {
-      border-radius: var(--radio-chico);
-      cursor: grabbing;
-      will-change: transform;
-      animation: alzar 170ms cubic-bezier(0.2, 0, 0, 1) both;
-    }
-    .cdk-drag-preview .agarre {
-      cursor: grabbing;
-      color: var(--primario);
-      background: none;
-    }
-    /*
-      La propiedad scale va aparte de transform: se compone con el que el CDK
-      escribe en línea para seguir el puntero, así que no lo pisa.
-    */
-    @keyframes alzar {
-      from {
-        scale: 1;
-        box-shadow: 0 0 0 rgba(22, 48, 47, 0);
-      }
-      to {
-        scale: 1.015;
-        box-shadow:
-          0 14px 30px -10px rgba(22, 48, 47, 0.3),
-          0 2px 6px rgba(22, 48, 47, 0.08);
-      }
-    }
-    /* Al soltar, la tarjeta baja al hueco y apoya la sombra en el mismo tramo */
-    .cdk-drag-preview.cdk-drag-animating {
-      animation: none;
-      scale: 1;
-      box-shadow: 0 0 0 rgba(22, 48, 47, 0);
-      transition:
-        transform 240ms cubic-bezier(0.2, 0, 0, 1),
-        scale 240ms cubic-bezier(0.2, 0, 0, 1),
-        box-shadow 240ms ease;
-    }
-
-    /*
-      Hueco que deja el tramo mientras viaja. Es el clon que arma el CDK, con el
-      contenido oculto: conserva el alto exacto de la tarjeta y la página no se mueve.
-    */
-    .tramo.cdk-drag-placeholder {
-      border: 1.5px dashed var(--primario);
-      background: var(--primario-suave);
-      box-shadow: none;
-      animation: abrir-hueco 170ms cubic-bezier(0.2, 0, 0, 1) both;
-    }
-    .cdk-drag-placeholder > * {
-      visibility: hidden;
-    }
-    @keyframes abrir-hueco {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 0.7;
-      }
-    }
-
-    /* El reacomodo de los vecinos y el regreso al soltar, con la misma curva */
-    .cdk-drag-animating,
-    .tramos.cdk-drop-list-dragging .tramo:not(.cdk-drag-placeholder) {
-      transition: transform 240ms cubic-bezier(0.2, 0, 0, 1);
-    }
-    .tramos.cdk-drop-list-dragging .tramo:not(.cdk-drag-placeholder) {
-      will-change: transform;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .cdk-drag-preview,
-      .cdk-drag-preview.cdk-drag-animating,
-      .cdk-drag-placeholder {
-        animation: none;
-        scale: 1;
-      }
-      .cdk-drag-animating,
-      .tramos.cdk-drop-list-dragging .tramo:not(.cdk-drag-placeholder) {
-        transition: none;
-      }
-    }
-    .tramo-numero {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--primario);
-      color: var(--blanco);
-      font-size: 0.72rem;
-      font-weight: 800;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      margin-top: 0.1rem;
+      margin-bottom: 0.9rem;
     }
     .tramo-cuerpo {
       flex: 1;
@@ -538,23 +330,12 @@ interface Chip {
     }
     .tramo-dur {
       font-size: 0.75rem;
-      color: var(--neutro);
-      white-space: nowrap;
-    }
-    .tramo-hora {
-      display: block;
-      font-size: 0.8rem;
       font-weight: 700;
       color: var(--primario);
-      margin-top: 0.1rem;
-    }
-    .tramo-hora.pendiente {
-      color: var(--neutro-claro);
-      font-weight: 500;
-      font-style: italic;
+      white-space: nowrap;
     }
 
-    /* Globos de profesional dentro de cada tramo */
+    /* Globos de profesional */
     .profes {
       display: flex;
       flex-wrap: wrap;
@@ -636,43 +417,6 @@ interface Chip {
       margin-bottom: auto;
     }
 
-    /* Resumen del bloque elegido, arriba de los horarios */
-    .bloque-elegido {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 1.4rem;
-      background: var(--primario-suave);
-      border-radius: var(--radio-chico);
-      padding: 0.6rem 0.85rem;
-    }
-    .bloque-icono {
-      color: var(--primario);
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
-    .bloque-texto {
-      font-size: 0.85rem;
-      color: var(--secundario);
-    }
-    .bloque-texto b {
-      color: var(--primario);
-    }
-    .bloque-texto i {
-      color: var(--neutro);
-      font-style: normal;
-      font-size: 0.8rem;
-    }
-    /* Todavía sin hora: mismo lugar, sin gritar que hay algo elegido. */
-    .bloque-elegido.vacio {
-      background: var(--fondo);
-    }
-    .bloque-elegido.vacio .bloque-icono,
-    .bloque-elegido.vacio .bloque-texto {
-      color: var(--neutro);
-    }
-
     .franja {
       margin: 1.4rem 0 0.6rem;
       font-size: 0.75rem;
@@ -707,7 +451,7 @@ interface Chip {
     .hora:hover {
       border-color: var(--primario);
     }
-    /* Toda hora que ocupa la visita, no solo el inicio */
+    /* Toda hora que ocupa el turno, no solo el inicio */
     .hora.elegida {
       background: var(--primario);
       border-color: var(--primario);
@@ -736,7 +480,7 @@ interface Chip {
       color: var(--blanco);
     }
 
-    /* Día sin horarios: decimos por qué y ofrecemos la salida */
+    /* Día sin horarios: decimos por qué */
     .sin-horarios {
       margin-top: 1.5rem;
       border-top: 1px solid var(--borde);
@@ -753,9 +497,103 @@ interface Chip {
       color: var(--neutro);
       font-size: 0.85rem;
     }
-    .sin-horarios .btn {
-      margin-top: 1rem;
+    /* Combinables: en desktop, tarjeta bajo el resumen; en mobile, al pie del
+       hueco reservado de horarios. En ninguno de los dos agregan scroll. */
+    .lateral {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-width: 0;
+      /* El lateral entero acompaña el scroll (antes lo hacía solo el resumen). */
+      position: sticky;
+      top: 1rem;
     }
+    .combinar-panel {
+      padding: 1.1rem 1.25rem;
+      border-left: 4px solid var(--terciario);
+    }
+    .combinar-mobile {
+      display: none;
+      margin-top: auto;
+      padding-top: 1.1rem;
+    }
+    .combinar-titulo {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin: 0 0 0.55rem;
+      color: var(--neutro);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .combinar-icono {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--terciario-suave);
+      color: var(--terciario-oscuro);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .combinable {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background: var(--fondo);
+      border: 1.5px solid transparent;
+      border-radius: var(--radio-chico);
+      padding: 0.5rem 0.7rem;
+      margin-bottom: 0.4rem;
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+    .combinable.elegido {
+      background: var(--primario-suave);
+      border-color: var(--primario);
+    }
+    .combinable-textos {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+    .combinable-textos strong {
+      font-size: 0.82rem;
+      line-height: 1.3;
+    }
+    .combinable-textos span {
+      font-size: 0.75rem;
+      color: var(--neutro);
+      white-space: nowrap;
+    }
+    .combinable-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border: 1.5px solid var(--primario);
+      background: var(--blanco);
+      color: var(--primario);
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease;
+    }
+    .combinable-btn:hover {
+      background: var(--primario-suave);
+    }
+    .combinable-btn.activo {
+      background: var(--primario);
+      color: var(--blanco);
+    }
+
     /* Estado vacío dentro del hueco reservado: centrado y sin separador, así
        se lee como "acá van a aparecer los horarios" y no como algo cortado. */
     .elegi-dia {
@@ -782,6 +620,13 @@ interface Chip {
       .continuar {
         display: none;
       }
+      /* Los combinables pasan del lateral al hueco de horarios. */
+      .combinar-panel {
+        display: none;
+      }
+      .combinar-mobile {
+        display: block;
+      }
     }
     @media (max-width: 720px) {
       .calendario {
@@ -791,11 +636,6 @@ interface Chip {
          hueco reservado tiene que ser más alto que en escritorio. */
       .zona-horarios {
         min-height: 428px;
-      }
-      /* Acá el texto guía entra en dos líneas y el del turno elegido en una:
-         sin un alto fijo, elegir la hora encoge la caja y corre los horarios. */
-      .bloque-elegido {
-        min-height: 62px;
       }
       /* El dedo necesita más blanco que el puntero */
       .volver {
@@ -822,33 +662,6 @@ interface Chip {
         flex-wrap: nowrap;
         overflow-x: auto;
       }
-      .flechas {
-        margin-left: 0;
-      }
-    }
-    .flechas {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-      flex-shrink: 0;
-    }
-    .flecha {
-      width: 24px;
-      height: 20px;
-      border: none;
-      background: none;
-      color: var(--neutro);
-      display: grid;
-      place-items: center;
-      border-radius: var(--radio-chico);
-    }
-    .flecha:hover:not(:disabled) {
-      color: var(--primario);
-      background: var(--blanco);
-    }
-    .flecha:disabled {
-      opacity: 0.3;
-      cursor: default;
     }
   `,
 })
@@ -856,21 +669,32 @@ export class Agendar {
   private readonly navegacion = inject(NavegacionReserva);
   protected readonly store = inject(ReservaStore);
   private readonly disponibilidad = inject(Disponibilidad);
+  private readonly agenda = inject(AgendaGuardada);
   private readonly calendario = viewChild(Calendario);
 
   protected readonly iniciales = inicialesDe;
   protected readonly duracion = duracionTexto;
-  /**
-   * Con el mouse el arrastre empieza al instante; con el dedo esperamos un
-   * momento para no robarle el gesto al scroll de la página.
-   */
-  protected readonly retardoArrastre = { touch: 110, mouse: 0 };
+  protected readonly precio = precioARS;
   /** Fotos que no cargaron: caen al avatar con iniciales. */
   private readonly sinFoto = signal<string[]>([]);
 
-  protected readonly titulo = computed(() => {
-    const lista = this.store.carrito();
-    return lista.length === 1 ? lista[0].nombre : `Tu visita · ${lista.length} servicios`;
+  /**
+   * Combinables que se pueden ofrecer: los del servicio en curso, menos los
+   * que el paciente ya tiene reservados a futuro. No tiene sentido ofrecerle
+   * combinar un servicio para el que ya tiene turno.
+   */
+  protected readonly combinables = computed(() => {
+    const servicio = this.store.servicio();
+    if (!servicio) {
+      return [];
+    }
+    const email = this.store.emailPaciente();
+    const yaReservados = new Set(
+      (email ? this.agenda.turnosDe(email) : [])
+        .filter((t) => t.inicio > Date.now())
+        .map((t) => t.servicioId),
+    );
+    return combinablesDe(servicio).filter((c) => !yaReservados.has(c.id));
   });
 
   protected readonly horarios = computed(() => {
@@ -880,35 +704,19 @@ export class Agendar {
       : { manana: [], tarde: [] };
   });
 
-  /**
-   * Lo que se muestra en la lista de tramos. Con el bloque resuelto usa el plan
-   * (orden y profesionales reales); si no, los servicios del carrito sin hora.
-   */
-  protected readonly tramosVista = computed(() => {
-    const plan = this.store.plan();
-    if (plan) {
-      return plan.map((t) => ({
-        servicio: t.servicio,
-        profesional: t.profesional,
-        hora: aHora(t.inicioMin),
-        fin: aHora(t.inicioMin + t.duracionMin),
-      }));
+  /** Quién quedó asignado por el sistema cuando no se pidió a nadie. */
+  protected readonly profesionalAsignado = computed<Profesional | null>(() => {
+    const servicio = this.store.servicio();
+    if (!servicio || this.store.profesionalFijado(servicio.id)) {
+      return null;
     }
-    return this.store.carrito().map((servicio) => ({
-      servicio,
-      profesional: null as Profesional | null,
-      hora: null as string | null,
-      fin: null as string | null,
-    }));
+    return this.store.plan()?.[0]?.profesional ?? null;
   });
 
-  /** Las dos franjas con sus chips, marcando las que caen dentro del bloque. */
+  /** Las dos franjas con sus chips, marcando las que ocupa el turno elegido. */
   protected readonly franjas = computed(() => {
     const horarios = this.horarios();
-    const plan = this.store.plan();
-    const inicio = this.store.hora();
-    const rango = this.rangoDe(plan);
-    void inicio;
+    const rango = this.rangoDe(this.store.plan());
     const chips = (horas: string[]): Chip[] =>
       horas.map((hora) => ({ hora, enBloque: !!rango && dentro(hora, rango) }));
     return [
@@ -927,7 +735,6 @@ export class Agendar {
     const motivo: MotivoSinCupo = fecha
       ? this.disponibilidad.motivoSinCupo(consulta, fecha)
       : 'sin-hueco';
-    const varios = this.store.cantidad() > 1;
     switch (motivo) {
       case 'profesional-no-atiende': {
         // El pedido del usuario es lo que bloquea la fecha: se lo decimos.
@@ -939,38 +746,17 @@ export class Agendar {
               ? `${quienes[0].nombre} no atiende ese día`
               : 'Los profesionales que pediste no atienden ese día',
           detalle: `${detalle}. Elegí otra fecha o volvé a "Cualquiera" para que lo asignemos nosotros.`,
-          separar: false,
         };
       }
-      case 'sin-dia-comun':
-        return {
-          titulo: 'Estos servicios no se pueden hacer el mismo día',
-          detalle:
-            'Los profesionales que los dan no coinciden en ningún día de la semana. Podés agendarlos en visitas separadas.',
-          separar: true,
-        };
-      case 'no-entra':
-        return {
-          titulo: 'No entran juntos en una sola visita',
-          detalle:
-            'La suma de los servicios supera el turno de atención de la mañana y de la tarde. Probá con menos servicios.',
-          separar: true,
-        };
       case 'dia-sin-equipo':
         return {
           titulo: 'Ese día no está todo el equipo',
-          detalle: varios
-            ? 'Alguno de los servicios de tu visita no se atiende ese día. Probá con otra fecha.'
-            : 'Nadie atiende este servicio ese día. Probá con otra fecha.',
-          separar: false,
+          detalle: 'Nadie atiende este servicio ese día. Probá con otra fecha.',
         };
       default:
         return {
           titulo: 'No quedan horarios para este día',
-          detalle: varios
-            ? 'No hay un hueco seguido donde entren todos los servicios. Probá con otra fecha, cambiá el orden o pedí "Cualquiera" en los profesionales.'
-            : 'Probá con otra fecha.',
-          separar: false,
+          detalle: 'Probá con otra fecha.',
         };
     }
   });
@@ -1006,23 +792,22 @@ export class Agendar {
     this.store.fijarProfesional(servicioId, profesionalId);
   }
 
-  /** Reordena la visita al soltar el tramo arrastrado. */
-  protected soltarTramo(evento: CdkDragDrop<unknown>): void {
-    const { previousIndex, currentIndex } = evento;
-    if (previousIndex === currentIndex) {
-      return;
-    }
-    const servicio = this.tramosVista()[previousIndex]?.servicio;
-    if (servicio) {
-      this.store.reubicar(servicio.id, currentIndex);
-    }
+  protected elegido(servicioId: string): boolean {
+    return this.store.combinablePendiente()?.id === servicioId;
+  }
+
+  /** Un solo combinable pendiente por vez: elegir otro reemplaza al anterior. */
+  protected alternarCombinable(servicioId: string): void {
+    const actual = this.store.combinablePendiente();
+    const servicio = this.combinables().find((c) => c.id === servicioId) ?? null;
+    this.store.elegirCombinable(actual?.id === servicioId ? null : servicio);
   }
 
   protected elegirDia(fecha: Date): void {
     this.store.elegirFecha(fecha);
   }
 
-  /** Al elegir la hora se resuelve el bloque entero de una vez. */
+  /** Al elegir la hora se resuelve el turno completo de una vez. */
   protected elegirHora(hora: string): void {
     const fecha = this.store.fecha();
     if (!fecha) {

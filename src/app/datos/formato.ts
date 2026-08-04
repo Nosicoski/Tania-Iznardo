@@ -15,6 +15,19 @@ export function fechaLarga(fecha: Date): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
+/** "Martes 4 de agosto de 2026": el día con todas sus letras. */
+export function fechaLargaCompleta(fecha: Date): string {
+  const texto = new Intl.DateTimeFormat('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+    .format(fecha)
+    .replace(',', '');
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 /** "Lun", "Mar", ... */
 export function diaSemanaCorto(fecha: Date): string {
   const texto = new Intl.DateTimeFormat('es-AR', { weekday: 'short' })

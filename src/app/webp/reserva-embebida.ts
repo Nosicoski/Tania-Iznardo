@@ -35,7 +35,7 @@ export class ReservaEmbebida {
    */
   abrirTurno(servicio: Servicio, hueco: Hueco): void {
     this.store.reiniciar();
-    this.store.agregar(servicio);
+    this.store.elegirServicio(servicio);
     this.store.elegirFecha(hueco.fecha);
     const plan = this.disponibilidad.planDe(this.store.consulta(), hueco.fecha, hueco.hora);
     if (!plan) {

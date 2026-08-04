@@ -1,9 +1,9 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
 import { Profesional, Servicio } from '../modelos';
-import { aHora, duracionTexto, fechaCorta, fechaLarga, precioARS } from '../datos/formato';
+import { aHora, duracionTexto, fechaCorta, fechaLargaCompleta, precioARS } from '../datos/formato';
 
-/** Una línea del resumen: el servicio y, si ya está resuelto, su horario. */
+/** La línea del resumen: el servicio y, si ya está resuelto, su horario. */
 interface Linea {
   servicio: Servicio;
   profesional: Profesional | null;
@@ -13,10 +13,9 @@ interface Linea {
 }
 
 /**
- * Panel "Tu reserva" de la visita en curso: tarjeta lateral en desktop y barra
- * fija inferior (colapsable) en mobile. Lista un renglón por servicio, en el
- * orden en que se van a hacer. En el paso de datos, la barra mobile muestra
- * además el botón de confirmación (cta).
+ * Panel "Tu reserva" del turno en curso: tarjeta lateral en desktop y barra
+ * fija inferior (colapsable) en mobile. En el paso de datos, la barra mobile
+ * muestra además el botón de confirmación (cta).
  */
 @Component({
   selector: 'app-resumen-reserva',
@@ -24,26 +23,17 @@ interface Linea {
     <!-- Tarjeta desktop -->
     <aside class="panel tarjeta">
       <h3 class="titulo">Tu reserva</h3>
-      @if (store.hayServicios()) {
+      @if (store.hayServicio()) {
+        <!-- El día con todas sus letras; la hora vive en el renglón del servicio -->
         @if (store.fecha(); as f) {
-          <p class="dia">
-            {{ fecha(f) }}
-            @if (store.hora(); as h) {
-              <b>· {{ h }} – {{ store.finBloque() }} hs</b>
-            }
-          </p>
+          <p class="dia">{{ fecha(f) }}</p>
         }
         <div class="lineas">
-          @for (l of lineas(); track l.servicio.id; let i = $index) {
+          @if (linea(); as l) {
             <div class="servicio">
-              <strong>
-                @if (lineas().length > 1) {
-                  <span class="orden">{{ i + 1 }}</span>
-                }
-                {{ l.servicio.nombre }}
-              </strong>
+              <strong>{{ l.servicio.nombre }}</strong>
               <span>
-                {{ l.servicio.duracionMin }} min ·
+                {{ duracion(l.servicio.duracionMin) }} ·
                 <b class="precio">{{ precio(l.servicio.precio) }}</b>
               </span>
               @if (l.hora) {
@@ -64,12 +54,6 @@ interface Linea {
             </div>
           }
         </div>
-        @if (store.cantidad() > 1) {
-          <div class="fila">
-            <span class="clave">Duración</span>
-            <span class="valor">{{ duracion(store.duracionBloque()) }}</span>
-          </div>
-        }
         <div class="total">
           <span>Total</span>
           <b>{{ precio(store.total()) }}</b>
@@ -95,9 +79,9 @@ interface Linea {
       >
         <span class="barra-info">
           <span class="barra-titulo">Tu reserva</span>
-          @if (store.hayServicios()) {
+          @if (store.servicio(); as servicio) {
             <span class="barra-detalle">
-              <strong>{{ resumenCorto() }}</strong>
+              <strong>{{ servicio.nombre }}</strong>
               @if (store.fecha(); as f) {
                 @if (store.hora(); as h) {
                   · {{ corta(f, h) }}
@@ -111,14 +95,11 @@ interface Linea {
         </span>
         <span class="flecha" [class.girada]="abierta()">▲</span>
       </button>
-      @if (abierta() && store.hayServicios()) {
+      @if (abierta() && store.hayServicio()) {
         <div class="barra-cuerpo">
-          @for (l of lineas(); track l.servicio.id; let i = $index) {
+          @if (linea(); as l) {
             <div class="fila">
               <span class="clave">
-                @if (lineas().length > 1) {
-                  <span class="orden">{{ i + 1 }}</span>
-                }
                 {{ l.servicio.nombre }}
                 @if (l.hora) {
                   <span class="cuando">{{ l.hora }} – {{ l.fin }} hs</span>
@@ -135,7 +116,7 @@ interface Linea {
             </div>
           }
           <div class="fila">
-            <span class="clave">Total · {{ duracion(store.duracionBloque()) }}</span>
+            <span class="clave">Total · {{ duracion(store.duracionServicio()) }}</span>
             <span class="valor precio">{{ precio(store.total()) }}</span>
           </div>
           @if (notaPago()) {
@@ -176,14 +157,12 @@ interface Linea {
       font-size: 0.85rem;
       margin-bottom: 1rem;
     }
-    /* Día de la visita: una sola vez arriba, no en cada renglón */
+    /* Día de la visita: una sola vez arriba, con el día de la semana entero */
     .dia {
       margin: 0 0 0.75rem;
-      font-size: 0.82rem;
-      color: var(--neutro);
-    }
-    .dia b {
-      color: var(--primario);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--secundario);
     }
     .lineas {
       display: flex;
@@ -201,29 +180,11 @@ interface Linea {
       font-size: 0.9rem;
     }
     .servicio strong {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.4rem;
       line-height: 1.3;
     }
-    /* Número de orden dentro de la visita */
-    .orden {
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
-      background: var(--primario);
-      color: var(--blanco);
-      font-size: 0.63rem;
-      font-weight: 800;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      margin-top: 0.15rem;
-    }
     /*
-     * Solo los renglones de datos, que son hijos directos: si alcanzara a
-     * cualquier span le pisaría el blanco al número de orden, que va dentro
-     * del strong del título.
+     * Solo los renglones de datos, que son hijos directos del bloque del
+     * servicio.
      */
     .servicio > span {
       color: var(--neutro);
@@ -370,11 +331,6 @@ interface Linea {
       .barra-cuerpo .valor {
         white-space: nowrap;
       }
-      .barra-cuerpo .orden {
-        display: inline-grid;
-        vertical-align: middle;
-        margin: 0 0.15rem 0 0;
-      }
       .barra-cta {
         margin-top: 0.6rem;
       }
@@ -393,30 +349,23 @@ export class ResumenReserva {
   protected readonly store = inject(ReservaStore);
   protected readonly abierta = signal(false);
 
-  /** Con el bloque resuelto manda el plan; si no, el carrito sin horarios. */
-  protected readonly lineas = computed<Linea[]>(() => {
+  /** Con el turno resuelto manda el plan; si no, el servicio sin horario. */
+  protected readonly linea = computed<Linea | null>(() => {
     const plan = this.store.plan();
-    if (plan) {
-      return plan.map((t) => ({
+    if (plan?.length) {
+      const t = plan[0];
+      return {
         servicio: t.servicio,
         profesional: t.profesional,
         hora: aHora(t.inicioMin),
         fin: aHora(t.inicioMin + t.duracionMin),
         automatico: t.automatico,
-      }));
+      };
     }
-    return this.store.carrito().map((servicio) => ({
-      servicio,
-      profesional: null,
-      hora: null,
-      fin: null,
-      automatico: false,
-    }));
-  });
-
-  protected readonly resumenCorto = computed(() => {
-    const lista = this.store.carrito();
-    return lista.length === 1 ? lista[0].nombre : `${lista.length} servicios`;
+    const servicio = this.store.servicio();
+    return servicio
+      ? { servicio, profesional: null, hora: null, fin: null, automatico: false }
+      : null;
   });
 
   protected credencial(profesional: Profesional): string {
@@ -431,7 +380,7 @@ export class ResumenReserva {
   readonly ctaClick = output<void>();
 
   protected precio = precioARS;
-  protected fecha = fechaLarga;
+  protected fecha = fechaLargaCompleta;
   protected corta = fechaCorta;
   protected duracion = duracionTexto;
 }

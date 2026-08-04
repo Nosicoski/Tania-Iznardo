@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { ReservaStore, TOPE_SERVICIOS } from './reserva-store';
-import { SERVICIOS } from '../datos/catalogo';
+import { ReservaStore } from './reserva-store';
+import { SERVICIOS, combinablesDe } from '../datos/catalogo';
 import { Servicio } from '../modelos';
 
 const servicio = (id: string): Servicio => {
@@ -13,8 +13,7 @@ const servicio = (id: string): Servicio => {
 
 const OSTEO = 'osteopatia-primera';
 const NUTRI = 'nutricion-consulta';
-const MASAJE = 'masaje-relajante';
-const TALLER = 'taller-higiene-postural';
+const MASAJE = 'masaje-descontracturante';
 
 describe('ReservaStore', () => {
   let store: ReservaStore;
@@ -26,100 +25,66 @@ describe('ReservaStore', () => {
     store.reiniciar();
   });
 
-  const ids = () => store.carrito().map((s) => s.id);
-
-  describe('reubicar', () => {
-    beforeEach(() => {
-      [OSTEO, NUTRI, MASAJE].forEach((id) => store.agregar(servicio(id)));
+  describe('elegirServicio', () => {
+    it('arranca la reserva con ese servicio', () => {
+      store.elegirServicio(servicio(OSTEO));
+      expect(store.servicio()?.id).toBe(OSTEO);
+      expect(store.hayServicio()).toBe(true);
+      expect(store.total()).toBe(servicio(OSTEO).precio);
     });
 
-    it('lleva un servicio a la posición pedida', () => {
-      // Es la ruta que usan tanto el drag and drop como las flechas.
-      store.reubicar(OSTEO, 2);
-      expect(ids()).toEqual([NUTRI, MASAJE, OSTEO]);
+    it('elegir otro servicio pisa al anterior y suelta su profesional', () => {
+      store.elegirServicio(servicio(OSTEO));
+      store.fijarProfesional(OSTEO, 'tania-iznardo');
+      store.elegirServicio(servicio(NUTRI));
+      expect(store.servicio()?.id).toBe(NUTRI);
+      expect(store.profesionalFijado(OSTEO)).toBeNull();
     });
 
-    it('mueve hacia atrás sin perder ninguno', () => {
-      store.reubicar(MASAJE, 0);
-      expect(ids()).toEqual([MASAJE, OSTEO, NUTRI]);
-    });
-
-    it('ignora posiciones fuera de rango y la posición actual', () => {
-      store.reubicar(OSTEO, -1);
-      store.reubicar(OSTEO, 3);
-      store.reubicar(NUTRI, 1);
-      expect(ids()).toEqual([OSTEO, NUTRI, MASAJE]);
-      expect(store.ordenManual()).toBe(false);
-    });
-
-    it('reordenar fija el orden del usuario e invalida el horario', () => {
+    it('cambiar el servicio invalida el horario ya elegido', () => {
+      store.elegirServicio(servicio(OSTEO));
       store.elegirFecha(new Date());
-      store.reubicar(OSTEO, 1);
-      expect(store.ordenManual()).toBe(true);
+      store.elegirServicio(servicio(NUTRI));
       expect(store.hora()).toBeNull();
       expect(store.plan()).toBeNull();
       // El día se conserva: solo se cayó el bloque.
       expect(store.fecha()).not.toBeNull();
     });
+  });
 
-    it('mover(-1/+1) delega en reubicar', () => {
-      store.mover(MASAJE, -1);
-      expect(ids()).toEqual([OSTEO, MASAJE, NUTRI]);
-      store.mover(MASAJE, 1);
-      expect(ids()).toEqual([OSTEO, NUTRI, MASAJE]);
+  describe('combinables', () => {
+    it('el catálogo sugiere combinables reales para el mock', () => {
+      const sugeridos = combinablesDe(servicio(MASAJE));
+      expect(sugeridos.length).toBeGreaterThan(0);
+      // Un servicio nunca se combina consigo mismo.
+      expect(sugeridos.some((s) => s.id === MASAJE)).toBe(false);
+    });
+
+    it('el combinable pendiente queda anotado y se puede soltar', () => {
+      const sugerido = combinablesDe(servicio(MASAJE))[0];
+      store.elegirServicio(servicio(MASAJE));
+      store.elegirCombinable(sugerido);
+      expect(store.combinablePendiente()?.id).toBe(sugerido.id);
+      store.elegirCombinable(null);
+      expect(store.combinablePendiente()).toBeNull();
+    });
+
+    it('reiniciar también descarta el combinable pendiente', () => {
+      store.elegirServicio(servicio(MASAJE));
+      store.elegirCombinable(combinablesDe(servicio(MASAJE))[0]);
+      store.reiniciar();
+      expect(store.combinablePendiente()).toBeNull();
     });
   });
 
-  describe('impedimentos', () => {
-    it('no admite más de TOPE_SERVICIOS', () => {
-      [OSTEO, NUTRI, MASAJE].forEach((id) => store.agregar(servicio(id)));
-      expect(store.cantidad()).toBe(TOPE_SERVICIOS);
-      const cuarto = servicio('osteopatia-craneal');
-      expect(store.impedimentoPara(cuarto)).toBe('tope');
-      store.agregar(cuarto);
-      expect(store.cantidad()).toBe(TOPE_SERVICIOS);
-    });
-
-    it('no repite el mismo servicio', () => {
-      store.agregar(servicio(OSTEO));
-      expect(store.impedimentoPara(servicio(OSTEO))).toBe('ya-esta');
-      store.agregar(servicio(OSTEO));
-      expect(store.cantidad()).toBe(1);
-    });
-
-    it('un servicio de reserva única no entra a una visita con otros', () => {
-      store.agregar(servicio(OSTEO));
-      expect(store.impedimentoPara(servicio(TALLER))).toBe('no-combinable');
-    });
-
-    it('con un taller en la visita no entra nada más', () => {
-      store.agregar(servicio(TALLER));
-      expect(store.esReservaUnica()).toBe(true);
-      expect(store.impedimentoPara(servicio(OSTEO))).toBe('visita-no-combinable');
-    });
-
-    it('reemplazarPor vacía la visita y deja solo el nuevo', () => {
-      [OSTEO, NUTRI].forEach((id) => store.agregar(servicio(id)));
-      store.reemplazarPor(servicio(TALLER));
-      expect(ids()).toEqual([TALLER]);
-    });
-  });
-
-  describe('quitar', () => {
-    it('saca el servicio y su profesional pedido', () => {
-      [OSTEO, NUTRI].forEach((id) => store.agregar(servicio(id)));
+  describe('vaciar', () => {
+    it('descarta el servicio y su profesional pedido', () => {
+      store.elegirServicio(servicio(OSTEO));
       store.fijarProfesional(OSTEO, 'tania-iznardo');
-      store.quitar(OSTEO);
-      expect(ids()).toEqual([NUTRI]);
+      store.vaciar();
+      expect(store.servicio()).toBeNull();
+      expect(store.hayServicio()).toBe(false);
       expect(store.profesionalFijado(OSTEO)).toBeNull();
-    });
-
-    it('al quedar un solo servicio suelta el orden manual', () => {
-      [OSTEO, NUTRI].forEach((id) => store.agregar(servicio(id)));
-      store.reubicar(NUTRI, 0);
-      expect(store.ordenManual()).toBe(true);
-      store.quitar(OSTEO);
-      expect(store.ordenManual()).toBe(false);
     });
   });
 });

@@ -11,15 +11,26 @@ export interface GrupoServicios {
 }
 
 /**
- * Categorías que se reservan solas: son procesos de varias sesiones o
- * encuentros grupales con horario propio, así que no se combinan con otros
- * servicios en una misma visita.
+ * Servicios que combinan bien entre sí (mock). Cuando el paciente está por
+ * confirmar uno, se le ofrece sumar el combinable en una reserva aparte, con
+ * su propio día y horario. No es una promoción: se cobra la suma normal.
  */
-const CATEGORIAS_NO_COMBINABLES = ['Programas y Talleres'];
+const COMBINABLES: Record<string, string[]> = {
+  'postural-individual': ['masaje-descontracturante'],
+  'postural-evaluacion': ['masaje-descontracturante'],
+  'masaje-descontracturante': ['masaje-drenaje', 'postural-individual'],
+  'masaje-drenaje': ['masaje-descontracturante'],
+  'osteopatia-sesion': ['masaje-relajante'],
+  'osteopatia-primera': ['masaje-descontracturante'],
+  'masaje-relajante': ['osteopatia-sesion'],
+  'nutricion-consulta': ['nutricion-antropometria'],
+};
 
-/** ¿Este servicio puede compartir visita con otros? */
-export function esCombinable(servicio: Servicio): boolean {
-  return !CATEGORIAS_NO_COMBINABLES.includes(servicio.categoria);
+/** Los servicios que combinan con este, ya resueltos contra el catálogo. */
+export function combinablesDe(servicio: Servicio): Servicio[] {
+  return (COMBINABLES[servicio.id] ?? [])
+    .map((id) => SERVICIOS.find((s) => s.id === id))
+    .filter((s): s is Servicio => !!s);
 }
 
 /** Imagen de reserva por categoría, para los servicios sin imagen propia. */
@@ -364,8 +375,6 @@ export const SERVICIOS: Servicio[] = [
       'Detección de intolerancia a la lactosa mediante muestras de aire espirado, sin extracción de sangre.',
     detalle:
       'Requiere preparación previa: ayuno de 8 hs y dieta especial el día anterior. Al reservar te enviamos las indicaciones completas.',
-    requisitos:
-      'Ayuno de 8 horas y dieta especial el día anterior. Te enviamos las indicaciones completas por correo.',
     imagenes: ['img/servicios/aire-1.jpg', 'img/servicios/aire-3.jpg'],
   },
   {
@@ -378,8 +387,6 @@ export const SERVICIOS: Servicio[] = [
       'Estudio de hidrógeno y metano en aire espirado para detectar sobrecrecimiento bacteriano del intestino delgado.',
     detalle:
       'Ayuno de 12 hs, dieta especial el día previo y suspensión de antibióticos y probióticos según indicación médica. Se toman varias muestras durante el estudio.',
-    requisitos:
-      'Ayuno de 12 horas, dieta especial el día previo y suspensión de antibióticos y probióticos según indicación médica.',
     imagenes: ['img/servicios/aire-2.jpg', 'img/servicios/aire-4.jpg'],
   },
   {
@@ -392,8 +399,6 @@ export const SERVICIOS: Servicio[] = [
       'Evaluación de la absorción de fructosa, frecuente causa de hinchazón y dolor abdominal.',
     detalle:
       'Ayuno de 8 hs y dieta baja en fibra el día anterior. No se puede fumar ni hacer ejercicio intenso antes del estudio.',
-    requisitos:
-      'Ayuno de 8 horas y dieta baja en fibra el día anterior. No fumar ni hacer ejercicio intenso antes del estudio.',
     imagenes: ['img/servicios/aire-3.jpg', 'img/servicios/aire-5.jpg'],
   },
   {
@@ -406,8 +411,6 @@ export const SERVICIOS: Servicio[] = [
       'Estudio del sorbitol, edulcorante presente en golosinas sin azúcar, chicles y algunas frutas.',
     detalle:
       'Mismas condiciones de preparación que el test de fructosa. Suele solicitarse junto con ese estudio.',
-    requisitos:
-      'Ayuno de 8 horas y dieta baja en fibra el día anterior, igual que el test de fructosa.',
     imagenes: ['img/servicios/aire-4.jpg', 'img/servicios/aire-1.jpg'],
   },
   {
@@ -420,8 +423,6 @@ export const SERVICIOS: Servicio[] = [
       'Detección de Helicobacter pylori en aire espirado, útil para diagnóstico y control post tratamiento.',
     detalle:
       'Ayuno de 6 hs. Es necesario suspender inhibidores de la bomba de protones 14 días antes y antibióticos 4 semanas antes.',
-    requisitos:
-      'Ayuno de 6 horas. Suspender inhibidores de la bomba de protones 14 días antes y antibióticos 4 semanas antes.',
     imagenes: ['img/servicios/aire-5.jpg', 'img/servicios/aire-2.jpg'],
   },
   {

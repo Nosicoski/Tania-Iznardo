@@ -6,7 +6,7 @@ import { Cuentas } from '../servicios/cuentas';
 import { AgendaGuardada } from '../servicios/agenda-guardada';
 import { Notificaciones } from '../servicios/notificaciones';
 import { Profesional } from '../modelos';
-import { aHora, fechaLarga, precioARS } from '../datos/formato';
+import { aHora, duracionTexto, fechaLarga, precioARS } from '../datos/formato';
 
 /** Recordatorios de la demo: falta confirmarlos con el consultorio. */
 const PREPARATIVOS = [
@@ -143,6 +143,42 @@ const PREPARATIVOS = [
             </ul>
           }
         </section>
+
+        <!-- El combinable que aceptó en el paso anterior: se agenda aparte -->
+        @if (store.combinablePendiente(); as combinable) {
+          <section class="combinable">
+            <span class="combinable-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <rect
+                  x="3.2"
+                  y="4.8"
+                  width="17.6"
+                  height="15"
+                  rx="3"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <path d="M3.2 9.4h17.6" stroke="currentColor" stroke-width="1.6" />
+                <path
+                  d="M12 12v4M10 14h4"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </span>
+            <div class="combinable-textos">
+              <strong>Te falta agendar {{ combinable.nombre }}</strong>
+              <span>
+                {{ duracion(combinable.duracionMin) }} · {{ precio(combinable.precio) }} ·
+                elegí su propio día y horario.
+              </span>
+            </div>
+            <button type="button" class="btn btn-primario" (click)="agendarCombinable()">
+              Elegir día y horario
+            </button>
+          </section>
+        }
 
         <div class="pie">
           @if (cuentas.haySesion()) {
@@ -364,6 +400,57 @@ const PREPARATIVOS = [
       line-height: 1.45;
     }
 
+    /* El combinable pendiente: la próxima acción natural, bien visible */
+    .combinable {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      text-align: left;
+      background: var(--terciario-suave);
+      border: 1.5px solid var(--terciario);
+      border-radius: var(--radio);
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    .combinable-icono {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--terciario);
+      color: var(--blanco);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .combinable-textos {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .combinable-textos strong {
+      font-size: 0.92rem;
+    }
+    .combinable-textos span {
+      font-size: 0.82rem;
+      color: var(--neutro);
+      line-height: 1.4;
+    }
+    .combinable .btn {
+      flex-shrink: 0;
+    }
+    @media (max-width: 720px) {
+      .combinable {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+      .combinable-icono {
+        margin: 0 auto;
+      }
+    }
+
     .acciones {
       display: flex;
       justify-content: center;
@@ -467,6 +554,7 @@ export class Confirmado {
   protected readonly precio = precioARS;
   protected readonly fecha = fechaLarga;
   protected readonly hora = aHora;
+  protected readonly duracion = duracionTexto;
 
   /** Los tramos de la visita, ya resueltos por el store. */
   protected readonly tramos = computed(() => this.store.plan() ?? []);
@@ -504,6 +592,20 @@ export class Confirmado {
       telefono: datos.telefono,
       dni: datos.dni,
     });
+  }
+
+  /**
+   * Arranca la reserva del combinable aceptado: el servicio queda precargado
+   * y solo falta elegirle día y horario.
+   */
+  protected agendarCombinable(): void {
+    const servicio = this.store.combinablePendiente();
+    if (!servicio) {
+      return;
+    }
+    this.cerrarVisita();
+    this.store.elegirServicio(servicio);
+    this.navegacion.ir('agendar');
   }
 
   protected irAMisTurnos(): void {

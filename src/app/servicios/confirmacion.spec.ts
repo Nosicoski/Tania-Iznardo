@@ -46,12 +46,14 @@ describe('confirmación de la visita', () => {
 
   /** Horarios que ofrece hoy la agenda para ese único servicio, en ese día. */
   const horariosDe = (id: string, fecha: Date): string[] => {
-    const antes = store.carrito();
-    store.vaciar();
-    store.agregar(servicio(id));
+    const antes = store.servicio();
+    store.elegirServicio(servicio(id));
     const h = disponibilidad.horariosPara(store.consulta(), fecha);
-    store.vaciar();
-    antes.forEach((s) => store.agregar(s));
+    if (antes) {
+      store.elegirServicio(antes);
+    } else {
+      store.vaciar();
+    }
     return [...h.manana, ...h.tarde];
   };
 
@@ -71,10 +73,9 @@ describe('confirmación de la visita', () => {
     throw new Error('sin día en común para los dos servicios');
   };
 
-  /** Deja la visita lista para confirmar: un servicio, un día y un bloque. */
+  /** Deja la reserva lista para confirmar: un servicio, un día y un bloque. */
   const prepararVisita = (id: string, fecha: Date, hora: string): Tramo[] => {
-    store.vaciar();
-    store.agregar(servicio(id));
+    store.elegirServicio(servicio(id));
     store.elegirFecha(fecha);
     const plan = disponibilidad.planDe(store.consulta(), fecha, hora);
     if (!plan) {
@@ -164,8 +165,7 @@ describe('confirmación de la visita', () => {
     expect(cuentas.registrar({ ...DATOS('ana@mail.com') }, 'secreta1')).toBeNull();
 
     // Con sesión, la agenda ya ni siquiera le ofrece esa hora.
-    store.vaciar();
-    store.agregar(servicio(MASAJE));
+    store.elegirServicio(servicio(MASAJE));
     store.elegirFecha(fecha);
     expect(disponibilidad.planDe(store.consulta(), fecha, hora)).toBeNull();
   });

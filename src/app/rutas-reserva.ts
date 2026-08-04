@@ -19,7 +19,7 @@ function volverA(url: string, paso: string) {
 }
 
 const conServicio: CanActivateFn = (_ruta, estado) =>
-  inject(ReservaStore).hayServicios() ? true : volverA(estado.url, 'servicio');
+  inject(ReservaStore).hayServicio() ? true : volverA(estado.url, 'servicio');
 
 /**
  * Cierra la visita si ya estaba confirmada. El turno reservado no se toca: lo
@@ -38,7 +38,7 @@ function cerrarVisitaConfirmada(): boolean {
 
 /**
  * El catálogo siempre arranca una visita nueva: si se llega acá con el turno
- * ya confirmado, el carrito queda vacío.
+ * ya confirmado, la reserva queda vacía.
  */
 const catalogoLimpio: CanActivateFn = () => {
   cerrarVisitaConfirmada();
@@ -56,7 +56,7 @@ const visitaSinConfirmar: CanActivateFn = (_ruta, estado) =>
 /** El paso de datos necesita la visita resuelta: servicios, día y bloque. */
 const conTurnoCompleto: CanActivateFn = (_ruta, estado) => {
   const store = inject(ReservaStore);
-  if (!store.hayServicios()) {
+  if (!store.hayServicio()) {
     return volverA(estado.url, 'servicio');
   }
   return store.listaParaDatos() ? true : volverA(estado.url, 'agendar');

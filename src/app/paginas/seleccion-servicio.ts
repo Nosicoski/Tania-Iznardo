@@ -1,10 +1,9 @@
 import { ApplicationRef, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { PerfilNegocio } from '../componentes/perfil-negocio';
-import { CarritoFlotante } from '../componentes/carrito-flotante';
-import { Impedimento, ReservaStore, TOPE_SERVICIOS } from '../servicios/reserva-store';
+import { ReservaStore } from '../servicios/reserva-store';
 import { NavegacionReserva } from '../servicios/navegacion-reserva';
-import { GRUPOS, SERVICIOS, esCombinable } from '../datos/catalogo';
+import { GRUPOS, SERVICIOS } from '../datos/catalogo';
 import { PROFESIONALES, inicialesDe, ofrece } from '../datos/profesionales';
 import { precioARS } from '../datos/formato';
 import { Profesional, Servicio } from '../modelos';
@@ -13,7 +12,7 @@ const MAX_IMAGENES = 3;
 
 @Component({
   selector: 'app-seleccion-servicio',
-  imports: [PerfilNegocio, CarritoFlotante],
+  imports: [PerfilNegocio],
   template: `
     <!-- Embebido en el sitio de un negocio, la cabecera de perfil sobra: la
          identidad ya la pone la página que hospeda al reservador. -->
@@ -42,47 +41,55 @@ const MAX_IMAGENES = 3;
         </aside>
 
         <div class="principal">
-          <!-- Filtro por profesional: acota el catálogo a lo que ofrece cada uno -->
-          <div class="filtro-profes" role="group" aria-label="Filtrar por profesional">
-            @for (p of profesionales; track p.id) {
-              <div class="globo-caja">
-                <button
-                  type="button"
-                  class="globo-profe"
-                  [attr.aria-pressed]="filtro()?.id === p.id"
-                  [class.activo]="filtro()?.id === p.id"
-                  (click)="filtrarPor(p)"
-                >
-                  <span class="avatar">
-                    @if (conFoto(p)) {
-                      <img [src]="p.foto" [alt]="p.nombre" (error)="fotoRota(p.id)" />
-                    } @else {
-                      <span class="iniciales">{{ iniciales(p.nombre) }}</span>
-                    }
-                  </span>
-                  <span class="globo-nombre">{{ p.nombre }}</span>
-                  <span class="globo-profesion">{{ p.profesion }}</span>
-                </button>
-                @if (filtro()?.id === p.id) {
+          <!-- Filtro por profesional: siempre opcional, el flujo sigue igual sin elegir -->
+          <section class="panel-profes">
+            <header class="profes-cabecera">
+              <h2 class="profes-titulo">Nuestro equipo</h2>
+              <p class="profes-bajada">
+                ¿Preferís a alguien del equipo? Tocá su foto, o reservá sin elegir a nadie.
+              </p>
+            </header>
+            <div class="filtro-profes" role="group" aria-label="Filtrar por profesional (opcional)">
+              @for (p of profesionales; track p.id) {
+                <div class="globo-caja">
                   <button
                     type="button"
-                    class="quitar-filtro"
-                    (click)="filtrarPor(null)"
-                    [attr.aria-label]="'Dejar de filtrar por ' + p.nombre"
+                    class="globo-profe"
+                    [attr.aria-pressed]="filtro()?.id === p.id"
+                    [class.activo]="filtro()?.id === p.id"
+                    (click)="filtrarPor(p)"
                   >
-                    <svg viewBox="0 0 12 12" width="9" height="9" fill="none" aria-hidden="true">
-                      <path
-                        d="M3 3l6 6M9 3l-6 6"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                      />
-                    </svg>
+                    <span class="avatar">
+                      @if (conFoto(p)) {
+                        <img [src]="p.foto" [alt]="p.nombre" (error)="fotoRota(p.id)" />
+                      } @else {
+                        <span class="iniciales">{{ iniciales(p.nombre) }}</span>
+                      }
+                    </span>
+                    <span class="globo-nombre">{{ p.nombre }}</span>
+                    <span class="globo-profesion">{{ p.profesion }}</span>
                   </button>
-                }
-              </div>
-            }
-          </div>
+                  @if (filtro()?.id === p.id) {
+                    <button
+                      type="button"
+                      class="quitar-filtro"
+                      (click)="filtrarPor(null)"
+                      [attr.aria-label]="'Dejar de filtrar por ' + p.nombre"
+                    >
+                      <svg viewBox="0 0 12 12" width="9" height="9" fill="none" aria-hidden="true">
+                        <path
+                          d="M3 3l6 6M9 3l-6 6"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </section>
 
           <section class="grupos">
             @for (g of grupos(); track g.nombre) {
@@ -113,14 +120,6 @@ const MAX_IMAGENES = 3;
                         <div class="meta">
                           <span>{{ s.duracionMin }} min</span>
                           <b class="precio">{{ precio(s.precio) }}</b>
-                          @if (!combinable(s)) {
-                            <span
-                              class="tag-unica"
-                              title="Se reserva solo: no se combina con otros servicios en la misma visita"
-                            >
-                              Reserva única
-                            </span>
-                          }
                         </div>
                         @if (s.imagenes?.length) {
                           <div class="fotos">
@@ -130,29 +129,6 @@ const MAX_IMAGENES = 3;
                           </div>
                         }
                         <p class="descripcion">{{ s.descripcion }}</p>
-                        @if (s.requisitos) {
-                          <p class="requisitos">
-                            <span class="requisitos-icono" aria-hidden="true">
-                              <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
-                                <circle
-                                  cx="8"
-                                  cy="8"
-                                  r="6.2"
-                                  stroke="currentColor"
-                                  stroke-width="1.5"
-                                />
-                                <path
-                                  d="M8 5.2v3.4"
-                                  stroke="currentColor"
-                                  stroke-width="1.6"
-                                  stroke-linecap="round"
-                                />
-                                <circle cx="8" cy="11" r="0.9" fill="currentColor" />
-                              </svg>
-                            </span>
-                            Requisitos previos
-                          </p>
-                        }
                         @if (expandido() === s.id) {
                           <p class="detalle">{{ s.detalle }}</p>
                         }
@@ -160,64 +136,13 @@ const MAX_IMAGENES = 3;
                           <button type="button" class="mas-info" (click)="alternarDetalle(s.id)">
                             {{ expandido() === s.id ? 'Menos información' : 'Más información' }}
                           </button>
-                          <!-- Ya en la visita: tacho · 1 · + (uno por servicio) -->
-                          @if (store.enVisita(s.id)) {
-                            <div class="stepper" [class.pulso]="pulso() === s.id">
-                              <button
-                                type="button"
-                                class="stepper-btn stepper-quitar"
-                                (click)="store.quitar(s.id)"
-                                [attr.aria-label]="'Quitar ' + s.nombre + ' de la visita'"
-                              >
-                                <svg
-                                  viewBox="0 0 20 20"
-                                  width="15"
-                                  height="15"
-                                  fill="none"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M4 6h12M8 6V4.5A1.5 1.5 0 0 1 9.5 3h1A1.5 1.5 0 0 1 12 4.5V6m-6 0v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6"
-                                    stroke="currentColor"
-                                    stroke-width="1.4"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                              <span class="stepper-cant">1</span>
-                              <button
-                                type="button"
-                                class="stepper-btn stepper-sumar"
-                                disabled
-                                title="Un turno por servicio en cada visita"
-                                aria-label="Un turno por servicio en cada visita"
-                              >
-                                +
-                              </button>
-                            </div>
-                          } @else if (store.hayServicios()) {
-                            <button
-                              type="button"
-                              class="btn-mas"
-                              [class.pulso]="pulso() === s.id"
-                              [disabled]="impedimento(s) === 'tope'"
-                              [attr.title]="motivo(s)"
-                              (click)="agendar(s)"
-                              [attr.aria-label]="'Agregar ' + s.nombre + ' a la visita'"
-                            >
-                              +
-                            </button>
-                          } @else {
-                            <button
-                              type="button"
-                              class="btn btn-primario"
-                              [class.pulso]="pulso() === s.id"
-                              (click)="agendar(s)"
-                            >
-                              Agregar a mi visita
-                            </button>
-                          }
+                          <button
+                            type="button"
+                            class="btn btn-primario"
+                            (click)="agendar(s)"
+                          >
+                            Reservar
+                          </button>
                         </footer>
                       </article>
                     }
@@ -229,84 +154,14 @@ const MAX_IMAGENES = 3;
         </div>
       </div>
     </div>
-
-    <app-carrito-flotante />
-
-    <!--
-      Aviso de preparación previa. Solo informa: el servicio ya quedó agregado y
-      el usuario sigue armando su visita como quiera.
-    -->
-    @if (aviso(); as s) {
-      <div class="fondo-modal" (click)="cerrarAviso()">
-        <div
-          class="modal tarjeta"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="aviso-titulo"
-          (click)="$event.stopPropagation()"
-        >
-          <span class="aviso-icono" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-              <path d="M12 7.6v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-              <circle cx="12" cy="16.2" r="1.2" fill="currentColor" />
-            </svg>
-          </span>
-          <h2 id="aviso-titulo">{{ s.nombre }} requiere preparación</h2>
-          <p class="modal-texto">{{ s.requisitos }}</p>
-          <div class="modal-acciones">
-            <button type="button" class="btn btn-primario" (click)="cerrarAviso()">
-              Entendido
-            </button>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- Los servicios de "reserva única" no comparten visita: hay que elegir -->
-    @if (aReemplazar(); as nuevo) {
-      <div class="fondo-modal" (click)="cancelarCambio()">
-        <div
-          class="modal tarjeta"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-titulo"
-          (click)="$event.stopPropagation()"
-        >
-          <h2 id="modal-titulo">Este servicio se reserva solo</h2>
-          @if (combinable(nuevo)) {
-            <p class="modal-texto">
-              Tu visita tiene <b>{{ store.carrito()[0].nombre }}</b
-              >, que se reserva solo y no se combina con otros servicios. Si querés
-              <b>{{ nuevo.nombre }}</b> vamos a reemplazarlo.
-            </p>
-          } @else {
-            <p class="modal-texto">
-              <b>{{ nuevo.nombre }}</b> se reserva solo, sin otros servicios en la misma visita. Si
-              lo elegís vamos a vaciar tu visita actual ({{ store.cantidad() }}
-              {{ store.cantidad() === 1 ? 'servicio' : 'servicios' }}).
-            </p>
-          }
-          <div class="modal-acciones">
-            <button type="button" class="btn btn-borde" (click)="cancelarCambio()">
-              Mantener mi visita
-            </button>
-            <button type="button" class="btn btn-primario" (click)="confirmarCambio()">
-              Reservar solo este
-            </button>
-          </div>
-        </div>
-      </div>
-    }
   `,
   styles: `
     .cabecera-panel {
       background: var(--blanco);
       border-bottom: 1px solid var(--borde);
     }
-    /* Aire para que el carrito flotante no tape la última tarjeta */
     .contenedor {
-      padding-bottom: 7rem;
+      padding-bottom: 3rem;
     }
 
     /* Columna central: el filtro arranca y termina donde las tarjetas */
@@ -315,6 +170,29 @@ const MAX_IMAGENES = 3;
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
+    }
+
+    /* Franja blanca del equipo: separada del catálogo para que se lea como
+       un paso aparte, y opcional. */
+    .panel-profes {
+      background: var(--blanco);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      box-shadow: var(--sombra);
+      padding: 1.1rem 1.25rem 0.75rem;
+    }
+    .profes-cabecera {
+      margin-bottom: 0.75rem;
+    }
+    .profes-titulo {
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .profes-bajada {
+      margin: 0.25rem 0 0;
+      color: var(--neutro);
+      font-size: 0.82rem;
+      line-height: 1.45;
     }
 
     /* Filtro por profesional (globos verticales) */
@@ -570,22 +448,6 @@ const MAX_IMAGENES = 3;
       color: var(--neutro);
       font-size: 0.85rem;
     }
-    /* Aviso discreto: el detalle completo va en el popup al agregarlo */
-    .requisitos {
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-      margin: -0.2rem 0 0;
-      color: var(--neutro-claro);
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .requisitos-icono {
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
     .detalle {
       margin: 0;
       background: var(--primario-suave);
@@ -608,157 +470,6 @@ const MAX_IMAGENES = 3;
       color: var(--primario);
       font-weight: 700;
       font-size: 0.85rem;
-    }
-    /* Servicio que no comparte visita (programas y talleres) */
-    .tag-unica {
-      margin-left: auto;
-      background: var(--terciario-suave);
-      color: var(--terciario-oscuro);
-      border-radius: 999px;
-      padding: 0.15rem 0.55rem;
-      font-size: 0.68rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    /* Agregar a la visita: + suelto cuando ya hay algo elegido */
-    .btn-mas {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 1.5px solid var(--primario);
-      background: var(--blanco);
-      color: var(--primario);
-      font-size: 1.4rem;
-      line-height: 1;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      transition:
-        background 0.15s ease,
-        color 0.15s ease;
-    }
-    .btn-mas:hover:not(:disabled) {
-      background: var(--primario-suave);
-    }
-    .btn-mas:disabled {
-      border-color: var(--borde);
-      color: var(--neutro-claro);
-      cursor: default;
-    }
-    /* Ya en la visita: tacho de basura · cantidad · + (uno por servicio) */
-    .stepper {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      border: 1.5px solid var(--borde);
-      border-radius: 999px;
-      padding: 0.3rem 0.4rem;
-      flex-shrink: 0;
-    }
-    .stepper-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      background: none;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      transition:
-        background 0.15s ease,
-        color 0.15s ease;
-    }
-    .stepper-quitar {
-      color: #b3392f;
-    }
-    .stepper-quitar:hover {
-      background: rgba(179, 57, 47, 0.1);
-    }
-    .stepper-sumar {
-      color: var(--primario);
-      font-size: 1.15rem;
-      line-height: 1;
-      border: 1.5px solid var(--primario);
-    }
-    .stepper-sumar:disabled {
-      border-color: var(--borde);
-      color: var(--neutro-claro);
-      cursor: default;
-    }
-    .stepper-cant {
-      min-width: 1ch;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-    /* Feedback al sumar o quitar un servicio */
-    .pulso {
-      animation: pulso 0.45s ease;
-    }
-    @keyframes pulso {
-      0% {
-        transform: scale(1);
-      }
-      40% {
-        transform: scale(1.16);
-      }
-      100% {
-        transform: scale(1);
-      }
-    }
-
-    /* Aviso de reemplazo de la reserva en curso */
-    .fondo-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      background: rgba(22, 48, 47, 0.45);
-      display: grid;
-      place-items: center;
-      padding: 1.25rem;
-      animation: aparecer 0.18s ease;
-    }
-    @keyframes aparecer {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-    .modal {
-      width: min(440px, 100%);
-      padding: 1.5rem;
-    }
-    .modal h2 {
-      font-size: 1.1rem;
-    }
-    .aviso-icono {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--terciario-suave);
-      color: var(--terciario-oscuro);
-      display: grid;
-      place-items: center;
-      margin-bottom: 0.9rem;
-    }
-    .modal-texto {
-      margin: 0.75rem 0 1.5rem;
-      color: var(--neutro);
-      font-size: 0.9rem;
-    }
-    .modal-texto b {
-      color: var(--secundario);
-    }
-    .modal-acciones {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-      flex-wrap: wrap;
     }
 
     @media (max-width: 900px) {
@@ -792,8 +503,8 @@ const MAX_IMAGENES = 3;
       .categoria.activa {
         border-color: var(--primario);
       }
-      .modal-acciones .btn {
-        width: 100%;
+      .panel-profes {
+        padding: 0.95rem 1rem 0.55rem;
       }
       /* Objetivos táctiles: con el pulgar, 20px de cruz no se aciertan. */
       .quitar-filtro {
@@ -807,11 +518,6 @@ const MAX_IMAGENES = 3;
         min-height: 40px;
         display: inline-flex;
         align-items: center;
-      }
-      /* Quitar y sumar el servicio: 28px es chico para el pulgar. */
-      .stepper-btn {
-        width: 36px;
-        height: 36px;
       }
     }
   `,
@@ -830,20 +536,12 @@ export class SeleccionServicio {
   protected readonly expandido = signal<string | null>(null);
   /** Acordeón: un solo grupo abierto y ninguno al entrar. */
   protected readonly abierto = signal<string | null>(null);
-  /** Servicio que espera confirmación porque vaciaría la visita en curso. */
-  protected readonly aReemplazar = signal<Servicio | null>(null);
-  /** Servicio recién agregado cuyos requisitos hay que avisar (una sola vez). */
-  protected readonly aviso = signal<Servicio | null>(null);
-  /** Servicio cuyo botón "pulsa" al agregarse (feedback visual). */
-  protected readonly pulso = signal<string | null>(null);
-  protected readonly tope = TOPE_SERVICIOS;
-  protected readonly combinable = esCombinable;
   /**
-   * Profesional por el que se filtra el catálogo; null = todo el equipo. Al
-   * volver desde el paso de agenda arranca en el que ya venía pedido, si la
-   * visita entera lo tiene fijado.
+   * Profesional por el que se filtra el catálogo; null = todo el equipo. Es
+   * solo un filtro de exploración: reservar nunca lo exige. Al volver desde el
+   * paso de agenda arranca en el que ya venía pedido.
    */
-  protected readonly filtro = signal<Profesional | null>(this.profesionalDeLaVisita());
+  protected readonly filtro = signal<Profesional | null>(this.profesionalPedido());
   /** Fotos que no cargaron: caen al avatar con iniciales. */
   private readonly sinFoto = signal<string[]>([]);
 
@@ -875,14 +573,11 @@ export class SeleccionServicio {
     this.sinFoto.update((lista) => (lista.includes(id) ? lista : [...lista, id]));
   }
 
-  /** El profesional pedido para todos los servicios de la visita, si hay uno solo. */
-  private profesionalDeLaVisita(): Profesional | null {
-    const pedidos = this.store.carrito().map((s) => this.store.profesionalFijado(s.id));
-    const unico = pedidos[0];
-    if (!unico || pedidos.some((p) => p !== unico)) {
-      return null;
-    }
-    return PROFESIONALES.find((p) => p.id === unico) ?? null;
+  /** El profesional pedido para el servicio de la reserva en curso, si hay. */
+  private profesionalPedido(): Profesional | null {
+    const servicio = this.store.servicio();
+    const pedido = servicio ? this.store.profesionalFijado(servicio.id) : null;
+    return pedido ? (PROFESIONALES.find((p) => p.id === pedido) ?? null) : null;
   }
 
   /**
@@ -933,71 +628,14 @@ export class SeleccionServicio {
     this.expandido.set(this.expandido() === id ? null : id);
   }
 
-  protected impedimento(servicio: Servicio): Impedimento | null {
-    return this.store.impedimentoPara(servicio);
-  }
-
-  /** Texto del tooltip cuando el + no puede sumar el servicio. */
-  protected motivo(servicio: Servicio): string | null {
-    switch (this.impedimento(servicio)) {
-      case 'tope':
-        return `Máximo ${this.tope} servicios por visita`;
-      case 'no-combinable':
-        return 'Se reserva solo: reemplazaría tu visita actual';
-      case 'visita-no-combinable':
-        return 'Tu visita tiene un servicio que se reserva solo';
-      default:
-        return null;
-    }
-  }
-
+  /** Reservar es directo: se toma el servicio y se pasa a elegir día y hora. */
   protected agendar(servicio: Servicio): void {
-    const impedimento = this.impedimento(servicio);
-    // Los "reserva única" no conviven con nada: hay que decidir cuál queda.
-    if (impedimento === 'no-combinable' || impedimento === 'visita-no-combinable') {
-      this.aReemplazar.set(servicio);
-      return;
-    }
-    if (impedimento) {
-      return;
-    }
-    this.store.agregar(servicio);
-    this.sumado(servicio);
-  }
-
-  protected confirmarCambio(): void {
-    const servicio = this.aReemplazar();
-    this.aReemplazar.set(null);
-    if (!servicio) {
-      return;
-    }
-    this.store.reemplazarPor(servicio);
-    this.sumado(servicio);
-  }
-
-  protected cancelarCambio(): void {
-    this.aReemplazar.set(null);
-  }
-
-  protected cerrarAviso(): void {
-    this.aviso.set(null);
-  }
-
-  /** Cierre común de agregar: feedback, profesional del filtro y requisitos. */
-  private sumado(servicio: Servicio): void {
-    this.destacar(servicio.id);
+    this.store.elegirServicio(servicio);
     // El profesional por el que filtró queda pedido para ese servicio.
     const profesional = this.filtro();
     if (profesional && ofrece(profesional, servicio.id)) {
       this.store.fijarProfesional(servicio.id, profesional.id);
     }
-    if (servicio.requisitos) {
-      this.aviso.set(servicio);
-    }
-  }
-
-  private destacar(id: string): void {
-    this.pulso.set(id);
-    setTimeout(() => this.pulso.set(null), 450);
+    this.navegacion.ir('agendar');
   }
 }

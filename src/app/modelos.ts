@@ -9,12 +9,6 @@ export interface Servicio {
   badge?: string;
   /** Imágenes de referencia (opcionales, se muestran hasta 3). */
   imagenes?: string[];
-  /**
-   * Lo que el paciente tiene que hacer antes de venir (ayuno, estudios, ropa).
-   * Si está, la tarjeta lleva una marca discreta y al agregarlo se avisa una
-   * vez. No bloquea nada: es información, no una restricción.
-   */
-  requisitos?: string;
 }
 
 export interface Profesional {

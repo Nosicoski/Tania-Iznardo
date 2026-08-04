@@ -8,13 +8,6 @@ import {
 } from '@angular/forms';
 import { Cuenta, Cuentas } from '../servicios/cuentas';
 
-/** Lo que gana el usuario al registrarse; se muestra solo en el alta. */
-const BENEFICIOS = [
-  'Seguí tus próximos turnos y tu historial',
-  'Reservá más rápido, sin volver a cargar tus datos',
-  'Recibí los recordatorios de cada visita',
-];
-
 const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
 
 /** Autorrelleno: separación entre campos y cuánto dura el destello. */
@@ -79,9 +72,11 @@ const ESPERA_EXITO_MS = 1500;
               </svg>
             </button>
 
-            <div class="cabecera">
-              <span class="marca-icono" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+            <div class="hero" aria-hidden="true">
+              <span class="hero-circulo hero-circulo-1"></span>
+              <span class="hero-circulo hero-circulo-2"></span>
+              <span class="marca-icono">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
                   <circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
                   <path
                     d="M4.8 19.5c.9-3.4 3.7-5.2 7.2-5.2s6.3 1.8 7.2 5.2"
@@ -91,6 +86,8 @@ const ESPERA_EXITO_MS = 1500;
                   />
                 </svg>
               </span>
+            </div>
+            <div class="cabecera">
               <h2 id="modal-cuenta-titulo">
                 {{ esLogin() ? '¡Qué bueno verte de nuevo!' : 'Creá tu cuenta' }}
               </h2>
@@ -230,6 +227,8 @@ const ESPERA_EXITO_MS = 1500;
                 </div>
               }
 
+              <!-- En el alta las dos claves comparten fila: el popup entra sin scroll -->
+              <div [class.par]="!esLogin()">
               <label class="campo">
                 <span class="etiqueta">Contraseña</span>
                 <span class="control">
@@ -255,7 +254,7 @@ const ESPERA_EXITO_MS = 1500;
                   <input
                     [type]="verClave() ? 'text' : 'password'"
                     formControlName="clave"
-                    [placeholder]="esLogin() ? 'Tu contraseña' : 'Al menos 6 caracteres'"
+                    [placeholder]="esLogin() ? 'Tu contraseña' : 'Mínimo 6 caracteres'"
                     [attr.autocomplete]="esLogin() ? 'current-password' : 'new-password'"
                   />
                   <button
@@ -323,7 +322,7 @@ const ESPERA_EXITO_MS = 1500;
 
               @if (!esLogin()) {
                 <label class="campo">
-                  <span class="etiqueta">Repetí la contraseña</span>
+                  <span class="etiqueta">Repetila</span>
                   <span class="control">
                     <span class="icono" aria-hidden="true">
                       <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
@@ -347,7 +346,7 @@ const ESPERA_EXITO_MS = 1500;
                     <input
                       [type]="verConfirmacion() ? 'text' : 'password'"
                       formControlName="confirmacion"
-                      placeholder="Repetila para confirmar"
+                      placeholder="Otra vez"
                       autocomplete="new-password"
                     />
                     @if (coinciden()) {
@@ -416,6 +415,7 @@ const ESPERA_EXITO_MS = 1500;
                   }
                 </label>
               }
+              </div>
 
               @if (esLogin()) {
                 <button type="button" class="olvide" (click)="pedirAyuda.set(true)">
@@ -437,27 +437,6 @@ const ESPERA_EXITO_MS = 1500;
                 {{ esLogin() ? 'Entrar' : 'Crear mi cuenta' }}
               </button>
             </form>
-
-            @if (!esLogin()) {
-              <ul class="beneficios">
-                @for (b of beneficios; track b) {
-                  <li>
-                    <span class="punto" aria-hidden="true">
-                      <svg viewBox="0 0 16 16" width="10" height="10" fill="none">
-                        <path
-                          d="M3 8.5 6.5 12 13 4.5"
-                          stroke="currentColor"
-                          stroke-width="2.6"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </span>
-                    {{ b }}
-                  </li>
-                }
-              </ul>
-            }
 
             <p class="aviso">Demo sin servidor: la cuenta se guarda solo en este navegador.</p>
           }
@@ -552,20 +531,12 @@ const ESPERA_EXITO_MS = 1500;
       width: min(430px, 100%);
       background: var(--blanco);
       border-radius: var(--radio);
-      box-shadow: 0 24px 60px rgba(22, 48, 47, 0.3);
-      padding: 2rem 1.75rem 1.4rem;
+      box-shadow:
+        0 28px 70px rgba(22, 48, 47, 0.35),
+        0 4px 16px rgba(22, 48, 47, 0.12);
+      padding: 0 1.75rem 1.2rem;
+      overflow: hidden;
       animation: subir 0.24s ease;
-    }
-    /* Franja de marca arriba del popup */
-    .panel::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 5px;
-      border-radius: var(--radio) var(--radio) 0 0;
-      background: linear-gradient(90deg, var(--primario), var(--terciario));
     }
     @keyframes subir {
       from {
@@ -581,33 +552,66 @@ const ESPERA_EXITO_MS = 1500;
       position: absolute;
       top: 0.9rem;
       right: 0.9rem;
+      z-index: 1;
       width: 32px;
       height: 32px;
       border: none;
-      background: none;
+      background: rgba(255, 255, 255, 0.25);
       border-radius: 50%;
-      color: var(--neutro);
+      color: var(--blanco);
       display: grid;
       place-items: center;
+      backdrop-filter: blur(2px);
     }
     .cerrar:hover {
-      background: var(--fondo);
-      color: var(--secundario);
+      background: rgba(255, 255, 255, 0.4);
     }
 
-    .cabecera {
-      text-align: center;
-      margin-bottom: 1.2rem;
+    /* Cabecera de marca: degradado con círculos suaves y el ícono colgando */
+    .hero {
+      position: relative;
+      margin: 0 -1.75rem 1.75rem;
+      height: 64px;
+      background: linear-gradient(120deg, var(--primario), var(--terciario));
+      overflow: visible;
+    }
+    .hero-circulo {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .hero-circulo-1 {
+      width: 130px;
+      height: 130px;
+      top: -55px;
+      left: -35px;
+    }
+    .hero-circulo-2 {
+      width: 90px;
+      height: 90px;
+      right: -25px;
+      bottom: -40px;
+      background: rgba(255, 255, 255, 0.1);
     }
     .marca-icono {
-      width: 52px;
-      height: 52px;
+      position: absolute;
+      left: 50%;
+      bottom: -24px;
+      transform: translateX(-50%);
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      background: var(--primario-suave);
+      background: var(--blanco);
       color: var(--primario);
       display: grid;
       place-items: center;
-      margin: 0 auto 0.75rem;
+      box-shadow:
+        0 0 0 5px var(--blanco),
+        0 6px 18px rgba(22, 48, 47, 0.22);
+    }
+    .cabecera {
+      text-align: center;
+      margin-bottom: 0.95rem;
     }
     .cabecera h2 {
       font-size: 1.2rem;
@@ -627,7 +631,7 @@ const ESPERA_EXITO_MS = 1500;
       background: var(--fondo);
       border-radius: 999px;
       padding: 0.25rem;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
     }
     .opcion {
       background: none;
@@ -653,7 +657,7 @@ const ESPERA_EXITO_MS = 1500;
     form {
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.7rem;
     }
     .par {
       display: grid;
@@ -840,36 +844,8 @@ const ESPERA_EXITO_MS = 1500;
       cursor: default;
     }
 
-    .beneficios {
-      list-style: none;
-      margin: 1.1rem 0 0;
-      padding: 0.9rem 0 0;
-      border-top: 1px solid var(--borde);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .beneficios li {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      font-size: 0.8rem;
-      color: var(--neutro);
-      line-height: 1.4;
-    }
-    .punto {
-      flex-shrink: 0;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--primario-suave);
-      color: var(--primario);
-      display: grid;
-      place-items: center;
-      margin-top: 0.1rem;
-    }
     .aviso {
-      margin: 1rem 0 0;
+      margin: 0.85rem 0 0;
       text-align: center;
       font-size: 0.72rem;
       color: var(--neutro-claro);
@@ -896,12 +872,52 @@ const ESPERA_EXITO_MS = 1500;
         right: 0.6rem;
       }
     }
+    /* En teléfonos las columnas colapsan y el alta suma campos: se compacta
+       todo lo decorativo para que el popup entre sin scroll. */
     @media (max-width: 480px) {
       .par {
         grid-template-columns: 1fr;
       }
       .panel {
-        padding: 1.75rem 1.15rem 1.15rem;
+        padding: 0 1.15rem 1rem;
+      }
+      .hero {
+        margin: 0 -1.15rem 1.5rem;
+        height: 44px;
+      }
+      .marca-icono {
+        width: 40px;
+        height: 40px;
+        bottom: -20px;
+      }
+      .marca-icono svg {
+        width: 20px;
+        height: 20px;
+      }
+      .bajada {
+        display: none;
+      }
+      .cabecera {
+        margin-bottom: 0.7rem;
+      }
+      .cabecera h2 {
+        font-size: 1.05rem;
+      }
+      .selector {
+        margin-bottom: 0.75rem;
+      }
+      form {
+        gap: 0.5rem;
+      }
+      input {
+        padding: 0.5rem 0;
+      }
+      /* El medidor solo orienta: en pantallas chicas se sacrifica por espacio. */
+      .fuerza {
+        display: none;
+      }
+      .aviso {
+        margin-top: 0.6rem;
       }
     }
   `,
@@ -914,7 +930,6 @@ export class ModalCuenta {
   protected readonly cuentas = inject(Cuentas);
   private readonly fb = inject(NonNullableFormBuilder);
 
-  protected readonly beneficios = BENEFICIOS;
   protected readonly error = signal<string | null>(null);
   protected readonly verClave = signal(false);
   protected readonly verConfirmacion = signal(false);

@@ -3,21 +3,63 @@ import { NavegacionReserva } from '../servicios/navegacion-reserva';
 import { Negocio } from '../servicios/negocio';
 import { Cuentas } from '../servicios/cuentas';
 import { AgendaGuardada } from '../servicios/agenda-guardada';
+import { ReservaStore } from '../servicios/reserva-store';
 import { inicialesDe } from '../datos/profesionales';
-import { agruparEnVisitas, cuandoEsVisita, horaDe } from '../datos/visitas';
-import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
+import { Visita, agruparEnVisitas, cuandoEsVisita, horaDe } from '../datos/visitas';
+import { fechaLarga, precioARS } from '../datos/formato';
+import { TurnoGuardado } from '../modelos';
 
-/** Turnos de la cuenta con sesión iniciada, separados en próximos e historial. */
+/**
+ * Turnos pasados de muestra: enseñan cómo se ve el historial y para qué sirve
+ * (reagendar en dos toques, revisar el detalle). Fechas relativas a hoy para
+ * que siempre queden en el pasado.
+ */
+function turnosPasadosMock(): TurnoGuardado[] {
+  const dia = 24 * 60 * 60 * 1000;
+  const hace = (dias: number, hora: number, minutos: number): number => {
+    const d = new Date(Date.now() - dias * dia);
+    d.setHours(hora, minutos, 0, 0);
+    return d.getTime();
+  };
+  return [
+    {
+      servicioId: 'masaje-descontracturante',
+      profesionalId: 'nicolas-duarte',
+      inicio: hace(15, 10, 0),
+      duracionMin: 50,
+      reservaId: 'mock-pasado-1',
+    },
+    {
+      servicioId: 'postural-individual',
+      profesionalId: 'camila-ferreyra',
+      inicio: hace(28, 16, 30),
+      duracionMin: 45,
+      reservaId: 'mock-pasado-2',
+    },
+  ];
+}
+
+/** Turnos de la cuenta con sesión iniciada, separados en próximos y pasados. */
 @Component({
   selector: 'app-mis-turnos',
   template: `
     <div class="contenedor">
       @if (cuentas.sesion(); as usuario) {
-        <header class="encabezado">
+        <!-- Encabezado protagonista: el saludo y el próximo turno, sin métricas -->
+        <header class="encabezado tarjeta">
           <div class="saludo">
             <span class="avatar">{{ iniciales(usuario.nombre + ' ' + usuario.apellido) }}</span>
-            <div>
+            <div class="saludo-textos">
               <h1>Hola, {{ usuario.nombre }}</h1>
+              @if (proximos()[0]; as proxima) {
+                <p class="proximo">
+                  Tu próximo turno:
+                  <b>{{ proxima.titulo }}</b>
+                  · {{ cuandoEs(proxima).toLowerCase() }} a las {{ hora(proxima.inicio) }} hs
+                </p>
+              } @else {
+                <p class="proximo">No tenés turnos próximos. ¿Agendamos uno?</p>
+              }
               <p class="bajada">{{ usuario.email }} · {{ usuario.telefono }}</p>
             </div>
           </div>
@@ -25,21 +67,6 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
             Reservar otro turno
           </button>
         </header>
-
-        <div class="metricas">
-          <div class="metrica">
-            <b>{{ proximos().length }}</b>
-            <span>{{ proximos().length === 1 ? 'visita próxima' : 'visitas próximas' }}</span>
-          </div>
-          <div class="metrica">
-            <b>{{ pasados().length }}</b>
-            <span>{{ pasados().length === 1 ? 'visita anterior' : 'visitas anteriores' }}</span>
-          </div>
-          <div class="metrica">
-            <b>{{ horasTotales() }}</b>
-            <span>de tratamiento</span>
-          </div>
-        </div>
 
         @if (proximos().length) {
           <h2 class="titulo-seccion">Próximos turnos</h2>
@@ -62,31 +89,13 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
                     </span>
                   </div>
 
-                  <!-- Visita con varios servicios: se ven los tramos en orden -->
-                  @if (v.tramos.length > 1) {
-                    <ol class="tramos">
-                      @for (t of v.tramos; track t.clave) {
-                        <li>
-                          <img class="tramo-foto" [src]="t.imagen" alt="" aria-hidden="true" />
-                          <span class="tramo-hora">{{ hora(t.inicio) }}</span>
-                          <span class="tramo-nombre">
-                            {{ t.servicio?.nombre ?? 'Servicio' }}
-                          </span>
-                          <span class="suave">
-                            {{ t.duracionMin }} min · {{ t.profesional?.nombre ?? 'A confirmar' }}
-                          </span>
-                        </li>
-                      }
-                    </ol>
-                  }
-
                   <dl class="datos">
                     <div>
                       <dt>Cuándo</dt>
                       <dd>{{ fecha(v.inicio) }} · {{ hora(v.inicio) }} a {{ hora(v.fin) }} hs</dd>
                     </div>
                     <div>
-                      <dt>{{ v.tramos.length > 1 ? 'Profesionales' : 'Profesional' }}</dt>
+                      <dt>Profesional</dt>
                       <dd>{{ v.profesionales }}</dd>
                     </div>
                     <div>
@@ -139,8 +148,8 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
         }
 
         @if (pasados().length) {
-          <h2 class="titulo-seccion">Historial</h2>
-          <div class="lista historial">
+          <h2 class="titulo-seccion">Turnos pasados</h2>
+          <div class="lista">
             @for (v of pasados(); track v.clave) {
               <article class="tarjeta turno pasado">
                 <div class="turno-fecha">
@@ -159,6 +168,36 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
                     {{ fecha(v.inicio) }} · {{ hora(v.inicio) }} hs · con
                     {{ v.profesionales }}
                   </p>
+
+                  @if (detalleAbierto() === v.clave) {
+                    <dl class="datos datos-pasado">
+                      <div>
+                        <dt>Cuándo fue</dt>
+                        <dd>{{ fecha(v.inicio) }} · {{ hora(v.inicio) }} a {{ hora(v.fin) }} hs</dd>
+                      </div>
+                      <div>
+                        <dt>Profesional</dt>
+                        <dd>{{ v.profesionales }}</dd>
+                      </div>
+                      <div>
+                        <dt>Dónde</dt>
+                        <dd>{{ negocio().direccion }} · {{ negocio().ciudad }}</dd>
+                      </div>
+                      <div>
+                        <dt>Abonado</dt>
+                        <dd>{{ precio(v.precio) }} · en el consultorio</dd>
+                      </div>
+                    </dl>
+                  }
+
+                  <footer class="acciones-pasado">
+                    <button type="button" class="btn btn-primario" (click)="reagendar(v)">
+                      Reagendar
+                    </button>
+                    <button type="button" class="btn btn-borde" (click)="alternarDetalle(v.clave)">
+                      {{ detalleAbierto() === v.clave ? 'Ocultar detalle' : 'Ver detalle' }}
+                    </button>
+                  </footer>
                 </div>
               </article>
             }
@@ -199,61 +238,54 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       padding-top: 2rem;
       padding-bottom: 3rem;
     }
+    /* Encabezado protagonista: reemplaza a las viejas cards de métricas */
     .encabezado {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1.25rem;
       flex-wrap: wrap;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      padding: 1.5rem 1.75rem;
+      border-left: 4px solid var(--primario);
     }
     .saludo {
       display: flex;
       align-items: center;
-      gap: 0.9rem;
+      gap: 1.1rem;
       min-width: 0;
     }
     .avatar {
-      width: 52px;
-      height: 52px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       background: var(--primario);
       color: var(--blanco);
       display: grid;
       place-items: center;
       font-weight: 800;
+      font-size: 1.25rem;
       flex-shrink: 0;
     }
-    .bajada {
-      margin: 0.15rem 0 0;
-      color: var(--neutro);
-      font-size: 0.85rem;
+    .saludo-textos {
+      min-width: 0;
     }
-
-    /* Tira de métricas */
-    .metricas {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
-      margin-bottom: 2rem;
+    .encabezado h1 {
+      font-size: 1.6rem;
+      line-height: 1.2;
     }
-    .metrica {
-      background: var(--blanco);
-      border: 1px solid var(--borde);
-      border-radius: var(--radio);
-      padding: 0.9rem 1.1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
+    .proximo {
+      margin: 0.3rem 0 0;
+      font-size: 0.92rem;
+      color: var(--secundario);
     }
-    .metrica b {
-      font-size: 1.5rem;
+    .proximo b {
       color: var(--primario);
-      line-height: 1.1;
     }
-    .metrica span {
-      font-size: 0.78rem;
+    .bajada {
+      margin: 0.2rem 0 0;
       color: var(--neutro);
+      font-size: 0.82rem;
     }
 
     .titulo-seccion {
@@ -329,7 +361,7 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       flex: 1;
       min-width: 0;
     }
-    /* Imagen del servicio (o del primero, si la visita tiene varios) */
+    /* Imagen del servicio */
     .portada {
       width: 34px;
       height: 34px;
@@ -343,10 +375,6 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       height: 100%;
       object-fit: cover;
       display: block;
-    }
-    .pasado .portada {
-      filter: grayscale(0.55);
-      opacity: 0.85;
     }
     .estado {
       flex-shrink: 0;
@@ -363,42 +391,6 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       background: var(--terciario-suave);
       border-color: transparent;
       color: var(--terciario-oscuro);
-    }
-    /* Tramos de una visita con varios servicios */
-    .tramos {
-      list-style: none;
-      margin: 0 0 0.9rem;
-      padding: 0.7rem 0.85rem;
-      background: var(--primario-suave);
-      border-radius: var(--radio-chico);
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-    }
-    .tramos li {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      font-size: 0.82rem;
-    }
-    .tramo-foto {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--blanco);
-      object-fit: cover;
-      display: block;
-      flex-shrink: 0;
-    }
-    .tramo-hora {
-      font-weight: 800;
-      color: var(--primario);
-      min-width: 3.2em;
-    }
-    .tramo-nombre {
-      font-weight: 600;
-      color: var(--secundario);
     }
     .datos {
       display: grid;
@@ -420,10 +412,6 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       font-weight: 600;
       color: var(--secundario);
     }
-    .suave {
-      color: var(--neutro);
-      font-weight: 500;
-    }
     .turno-pie {
       display: flex;
       align-items: baseline;
@@ -444,24 +432,50 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       font-size: 0.95rem;
     }
 
-    /* Historial: más compacto y en gris */
-    .historial .turno {
-      padding: 0.9rem 1.1rem;
+    /* Turnos pasados: griseados, con reagendar y detalle a mano */
+    .pasado {
+      background: var(--fondo);
     }
     .pasado::before {
       background: var(--neutro-claro);
     }
     .pasado .turno-fecha {
-      background: var(--fondo);
+      background: var(--blanco);
     }
     .pasado .dia,
     .pasado .mes {
+      color: var(--neutro);
+    }
+    .pasado .portada {
+      filter: grayscale(0.7);
+      opacity: 0.8;
+    }
+    .pasado h3 {
       color: var(--neutro);
     }
     .linea-simple {
       margin: 0;
       font-size: 0.85rem;
       color: var(--neutro);
+    }
+    .datos-pasado {
+      margin-top: 0.9rem;
+      background: var(--blanco);
+      border-radius: var(--radio-chico);
+      padding: 0.85rem 1rem;
+    }
+    .datos-pasado dd {
+      color: var(--neutro);
+    }
+    .acciones-pasado {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.9rem;
+    }
+    .acciones-pasado .btn {
+      padding: 0.5rem 1.1rem;
+      font-size: 0.85rem;
     }
 
     /* Vacío e invitación a iniciar sesión */
@@ -499,8 +513,16 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
     }
 
     @media (max-width: 720px) {
-      .metricas {
-        grid-template-columns: 1fr;
+      .encabezado {
+        padding: 1.25rem 1.1rem;
+      }
+      .avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 1.05rem;
+      }
+      .encabezado h1 {
+        font-size: 1.3rem;
       }
       .turno {
         flex-direction: column;
@@ -522,6 +544,9 @@ import { duracionTexto, fechaLarga, precioARS } from '../datos/formato';
       .encabezado .btn {
         width: 100%;
       }
+      .acciones-pasado .btn {
+        flex: 1;
+      }
     }
   `,
 })
@@ -529,6 +554,7 @@ export class MisTurnos {
   protected readonly cuentas = inject(Cuentas);
   private readonly agenda = inject(AgendaGuardada);
   private readonly navegacion = inject(NavegacionReserva);
+  private readonly store = inject(ReservaStore);
 
   /** Dueño de la agenda: el consultorio, o el negocio que embebe el flujo. */
   protected readonly negocio = inject(Negocio).datos;
@@ -536,28 +562,24 @@ export class MisTurnos {
   protected readonly fecha = fechaLarga;
   protected readonly precio = precioARS;
 
-  /**
-   * Los turnos agrupados por visita. Los que comparten `reservaId` se
-   * reservaron juntos y se muestran como una sola tarjeta; los viejos, sin ese
-   * campo, quedan cada uno en su propia visita.
-   */
+  /** Turno pasado con el detalle desplegado (uno por vez). */
+  protected readonly detalleAbierto = signal<string | null>(null);
+
   private readonly visitas = computed(() => {
     const email = this.cuentas.sesion()?.email;
     return email ? agruparEnVisitas(this.agenda.turnosDe(email)) : [];
   });
 
   protected readonly proximos = computed(() => this.visitas().filter((v) => !v.pasado));
-  /** El historial se lee del más reciente al más viejo. */
-  protected readonly pasados = computed(() =>
-    this.visitas()
-      .filter((v) => v.pasado)
-      .reverse()
-  );
-
-  /** "40 min" hasta la hora; después "2h" o "2h 30m". */
-  protected readonly horasTotales = computed(() =>
-    duracionTexto(this.visitas().reduce((total, v) => total + v.duracionMin, 0))
-  );
+  /**
+   * Los pasados se leen del más reciente al más viejo. Se suman dos turnos de
+   * muestra para que se vea qué ofrece la sección (reagendar, ver detalle).
+   */
+  protected readonly pasados = computed(() => {
+    const reales = this.visitas().filter((v) => v.pasado);
+    const muestra = agruparEnVisitas(turnosPasadosMock());
+    return [...reales, ...muestra].sort((a, b) => b.inicio.getTime() - a.inicio.getTime());
+  });
 
   protected readonly cuandoEs = cuandoEsVisita;
   protected readonly hora = horaDe;
@@ -566,6 +588,25 @@ export class MisTurnos {
     return new Intl.DateTimeFormat('es-AR', { month: 'short' })
       .format(fecha)
       .replace('.', '');
+  }
+
+  protected alternarDetalle(clave: string): void {
+    this.detalleAbierto.update((actual) => (actual === clave ? null : clave));
+  }
+
+  /** Vuelve a reservar lo mismo: el servicio queda precargado, falta el día. */
+  protected reagendar(visita: Visita): void {
+    const tramo = visita.tramos[0];
+    if (!tramo?.servicio) {
+      this.reservar();
+      return;
+    }
+    this.store.reiniciar();
+    this.store.elegirServicio(tramo.servicio);
+    if (tramo.profesional) {
+      this.store.fijarProfesional(tramo.servicio.id, tramo.profesional.id);
+    }
+    this.navegacion.ir('agendar');
   }
 
   protected reservar(): void {

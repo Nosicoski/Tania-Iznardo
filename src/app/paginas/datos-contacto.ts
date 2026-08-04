@@ -1,11 +1,5 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import {
-  AbstractControl,
-  NonNullableFormBuilder,
-  ReactiveFormsModule,
-  ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { Component, effect, inject, signal } from '@angular/core';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NavegacionReserva } from '../servicios/navegacion-reserva';
 import { Stepper } from '../componentes/stepper';
 import { ResumenReserva } from '../componentes/resumen-reserva';
@@ -13,17 +7,12 @@ import { FalloConfirmacion, ReservaStore } from '../servicios/reserva-store';
 import { Cuentas } from '../servicios/cuentas';
 import { Notificaciones } from '../servicios/notificaciones';
 
-/** Con cuenta el turno queda guardado en "Mis turnos"; como invitado, no. */
-type Modo = 'cuenta' | 'invitado';
-
-const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
-
 /**
  * Qué se le dice al paciente cuando el bloque que había elegido ya no se puede
  * tomar. Salvo 'ya-confirmada', todos terminan en "elegí otro horario".
  */
 const MOTIVOS: Record<FalloConfirmacion, string> = {
-  'ya-confirmada': 'Esta visita ya estaba confirmada: no la reservamos dos veces.',
+  'ya-confirmada': 'Este turno ya estaba confirmado: no lo reservamos dos veces.',
   'sin-plan': 'Se soltó el horario que habías elegido. Elegí día y hora otra vez.',
   vencido: 'La hora que habías elegido ya pasó. Elegí un horario nuevo.',
   ocupado: 'Alguien tomó ese horario mientras completabas tus datos. Elegí otro, por favor.',
@@ -60,15 +49,8 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
             </div>
           } @else {
             <!-- Reservar sin cuenta va primero: es el camino sin fricción -->
-            <div class="solapas" role="tablist" aria-label="Cómo querés reservar">
-              <button
-                type="button"
-                class="solapa"
-                role="tab"
-                [class.activa]="modo() === 'invitado'"
-                [attr.aria-selected]="modo() === 'invitado'"
-                (click)="cambiarModo('invitado')"
-              >
+            <div class="solapas" role="group" aria-label="Cómo querés reservar">
+              <div class="solapa activa">
                 <span class="solapa-icono" aria-hidden="true">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                     <circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
@@ -84,25 +66,18 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
                   <strong>Completá tus datos</strong>
                   <span>Reservá sin registrarte, solo para este turno</span>
                 </span>
-              </button>
-              <button
-                type="button"
-                class="solapa"
-                role="tab"
-                [class.activa]="modo() === 'cuenta'"
-                [attr.aria-selected]="modo() === 'cuenta'"
-                (click)="cambiarModo('cuenta')"
-              >
+              </div>
+              <button type="button" class="solapa" (click)="cuentas.abrir('login')">
                 <span class="solapa-icono" aria-hidden="true">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
                     <path
-                      d="M12 4.6 19 8v4.6c0 3.7-2.7 6.4-7 7.4-4.3-1-7-3.7-7-7.4V8l7-3.4Z"
+                      d="M10 4.5H7A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h3"
                       stroke="currentColor"
                       stroke-width="1.8"
-                      stroke-linejoin="round"
+                      stroke-linecap="round"
                     />
                     <path
-                      d="m9 12 2.2 2.2L15.4 10"
+                      d="M13.5 8 17 11.8m0 0L13.5 15.5M17 11.8H8.5"
                       stroke="currentColor"
                       stroke-width="1.8"
                       stroke-linecap="round"
@@ -111,20 +86,11 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
                   </svg>
                 </span>
                 <span class="solapa-textos">
-                  <strong>Creá tu cuenta</strong>
-                  <span>Seguí tus turnos y reservá más rápido la próxima vez</span>
+                  <strong>Iniciá sesión</strong>
+                  <span>Tus datos se completan solos y el turno queda en tu cuenta</span>
                 </span>
               </button>
             </div>
-
-            @if (modo() === 'cuenta') {
-              <p class="ya-tengo">
-                ¿Ya tenés cuenta?
-                <button type="button" class="enlace" (click)="cuentas.abrir('login')">
-                  Iniciá sesión
-                </button>
-              </p>
-            }
           }
 
           <form class="tarjeta formulario" [formGroup]="formulario" (ngSubmit)="confirmar()">
@@ -249,190 +215,6 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
                 }
               </label>
 
-              @if (pideClave()) {
-                <label class="campo">
-                  <span class="etiqueta">Contraseña <i>*</i></span>
-                  <span class="control">
-                    <span class="icono" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
-                        <rect
-                          x="4"
-                          y="8.5"
-                          width="12"
-                          height="7.5"
-                          rx="2"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                        />
-                        <path
-                          d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    </span>
-                    <input
-                      [type]="verClave() ? 'text' : 'password'"
-                      formControlName="clave"
-                      placeholder="Al menos 6 caracteres"
-                      autocomplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      class="ojo"
-                      (click)="verClave.set(!verClave())"
-                      [attr.aria-label]="verClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                      [attr.aria-pressed]="verClave()"
-                    >
-                      @if (verClave()) {
-                        <svg
-                          viewBox="0 0 20 20"
-                          width="17"
-                          height="17"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                          />
-                          <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                          <path
-                            d="m4 16 12-12"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                          />
-                        </svg>
-                      } @else {
-                        <svg
-                          viewBox="0 0 20 20"
-                          width="17"
-                          height="17"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                          />
-                          <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                        </svg>
-                      }
-                    </button>
-                  </span>
-                  <!-- Medidor: solo orienta, no bloquea el alta -->
-                  <span class="fuerza">
-                    <span class="barras" aria-hidden="true">
-                      @for (i of [0, 1, 2, 3]; track i) {
-                        <span class="barra" [class.llena]="i < fuerza()"></span>
-                      }
-                    </span>
-                    <span class="nivel">{{ etiquetaFuerza() }}</span>
-                  </span>
-                  @if (invalido('clave')) {
-                    <span class="error" role="alert">Usá al menos 6 caracteres.</span>
-                  }
-                </label>
-
-                <label class="campo">
-                  <span class="etiqueta">Repetí la contraseña <i>*</i></span>
-                  <span class="control">
-                    <span class="icono" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
-                        <rect
-                          x="4"
-                          y="8.5"
-                          width="12"
-                          height="7.5"
-                          rx="2"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                        />
-                        <path
-                          d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    </span>
-                    <input
-                      [type]="verConfirmacion() ? 'text' : 'password'"
-                      formControlName="confirmacion"
-                      placeholder="Repetila para confirmar"
-                      autocomplete="new-password"
-                    />
-                    @if (coinciden()) {
-                      <span class="tilde" aria-hidden="true">
-                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none">
-                          <path
-                            d="M3 8.5 6.5 12 13 4.5"
-                            stroke="currentColor"
-                            stroke-width="2.4"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    }
-                    <button
-                      type="button"
-                      class="ojo"
-                      (click)="verConfirmacion.set(!verConfirmacion())"
-                      [attr.aria-label]="
-                        verConfirmacion() ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                      "
-                      [attr.aria-pressed]="verConfirmacion()"
-                    >
-                      @if (verConfirmacion()) {
-                        <svg
-                          viewBox="0 0 20 20"
-                          width="17"
-                          height="17"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                          />
-                          <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                          <path
-                            d="m4 16 12-12"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                          />
-                        </svg>
-                      } @else {
-                        <svg
-                          viewBox="0 0 20 20"
-                          width="17"
-                          height="17"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                          />
-                          <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                        </svg>
-                      }
-                    </button>
-                  </span>
-                  @if (invalido('confirmacion')) {
-                    <span class="error" role="alert">Las contraseñas no coinciden.</span>
-                  }
-                </label>
-              }
-
               <label class="campo campo-ancho">
                 <span class="etiqueta">Observaciones</span>
                 <span class="control control-area">
@@ -444,10 +226,6 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
                 </span>
               </label>
             </div>
-
-            @if (errorCuenta(); as e) {
-              <p class="error-caja">{{ e }}</p>
-            }
 
             <!-- El horario dejó de estar disponible: no se guardó nada -->
             @if (errorTurno(); as e) {
@@ -465,6 +243,7 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
               Te notificaremos sobre tu turno al correo y/o teléfono que indiques.
             </p>
           </form>
+
         </div>
 
         <app-resumen-reserva
@@ -500,7 +279,7 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       min-width: 0;
     }
 
-    /* Elegir entre reservar sin cuenta (primero) o crearla */
+    /* Reservar sin cuenta (activo) o entrar con la cuenta */
     .solapas {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -521,10 +300,9 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       transition:
         border-color 0.15s ease,
         background 0.15s ease,
-        box-shadow 0.15s ease,
-        transform 0.15s ease;
+        box-shadow 0.15s ease;
     }
-    /* Franja de marca que aparece solo en la elegida */
+    /* Franja de marca que aparece solo en la activa */
     .solapa::before {
       content: '';
       position: absolute;
@@ -569,9 +347,13 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       color: var(--neutro);
       line-height: 1.35;
     }
-    .solapa:hover {
+    button.solapa:hover {
       border-color: var(--primario);
       box-shadow: 0 4px 14px rgba(22, 48, 47, 0.07);
+    }
+    button.solapa:hover .solapa-icono {
+      background: var(--primario);
+      color: var(--blanco);
     }
     .solapa.activa {
       border-color: var(--primario);
@@ -583,22 +365,6 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
     .solapa.activa .solapa-icono {
       background: var(--primario);
       color: var(--blanco);
-    }
-    .ya-tengo {
-      margin: 0 0 0.9rem;
-      font-size: 0.82rem;
-      color: var(--neutro);
-    }
-    .enlace {
-      background: none;
-      border: none;
-      padding: 0;
-      color: var(--primario);
-      font-weight: 700;
-      font-size: 0.82rem;
-    }
-    .enlace:hover {
-      text-decoration: underline;
     }
 
     /* Ya hay sesión: no hace falta elegir nada */
@@ -705,29 +471,6 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
     textarea::placeholder {
       color: var(--neutro-claro);
     }
-    .ojo {
-      flex-shrink: 0;
-      border: none;
-      background: none;
-      padding: 0.2rem;
-      color: var(--neutro);
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-    }
-    .ojo:hover {
-      color: var(--primario);
-    }
-    .tilde {
-      flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--primario);
-      color: var(--blanco);
-      display: grid;
-      place-items: center;
-    }
     .prefijo {
       font-weight: 700;
       font-size: 0.9rem;
@@ -739,35 +482,6 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       font-size: 0.75rem;
     }
 
-    /* Medidor de fuerza de la contraseña */
-    .fuerza {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.1rem;
-    }
-    .barras {
-      display: flex;
-      gap: 3px;
-      flex: 1;
-    }
-    .barra {
-      height: 4px;
-      flex: 1;
-      border-radius: 999px;
-      background: var(--borde);
-      transition: background 0.2s ease;
-    }
-    .barra.llena {
-      background: var(--primario);
-    }
-    .nivel {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: var(--neutro);
-      min-width: 62px;
-      text-align: right;
-    }
     .error {
       color: #b3392f;
       font-size: 0.75rem;
@@ -806,6 +520,7 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       color: var(--neutro);
       font-size: 0.8rem;
     }
+
     .acciones {
       display: flex;
       justify-content: space-between;
@@ -826,75 +541,31 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       .solapas {
         grid-template-columns: 1fr;
       }
-      /* Objetivos táctiles: el ojo de la contraseña medía 23px y el enlace a
-         iniciar sesión 17px de alto. */
-      .ojo {
-        width: 40px;
-        height: 40px;
-        margin-right: -0.4rem;
-      }
-      .enlace {
-        padding: 0.4rem 0;
-        min-height: 36px;
-      }
     }
   `,
 })
 export class DatosContacto {
   private readonly navegacion = inject(NavegacionReserva);
-  private readonly store = inject(ReservaStore);
+  protected readonly store = inject(ReservaStore);
   protected readonly cuentas = inject(Cuentas);
   private readonly notificaciones = inject(Notificaciones);
   private readonly fb = inject(NonNullableFormBuilder);
 
-  /** Reservar sin cuenta es el camino por defecto: la cuenta se ofrece al final. */
-  protected readonly modo = signal<Modo>('invitado');
-  protected readonly errorCuenta = signal<string | null>(null);
   /** El bloque elegido ya no se puede tomar; el turno NO se guardó. */
   protected readonly errorTurno = signal<string | null>(null);
   /** Confirmación en curso: evita que un doble clic reserve dos veces. */
   protected readonly enviando = signal(false);
-  /** Con la visita ya confirmada no tiene sentido ofrecer otro horario. */
+  /** Con el turno ya confirmado no tiene sentido ofrecer otro horario. */
   protected readonly puedeReelegir = signal(true);
-  protected readonly verClave = signal(false);
-  protected readonly verConfirmacion = signal(false);
 
   protected readonly formulario = this.fb.group({
     nombre: ['', Validators.required],
     apellido: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     telefono: ['', [Validators.required, Validators.pattern(/^\d{8,12}$/)]],
-    // Obligatorio en los dos modos: el consultorio lo necesita para la ficha.
+    // Obligatorio siempre: el consultorio lo necesita para la ficha.
     dni: ['', [Validators.required, Validators.pattern(/^\d{7,8}$/)]],
-    clave: ['', [Validators.required, Validators.minLength(6)]],
-    confirmacion: [''],
     observaciones: [''],
-  });
-
-  private readonly claveEscrita = signal('');
-  private readonly confirmacionEscrita = signal('');
-
-  /** 0 a 4: largo y variedad de caracteres. Orienta, no bloquea. */
-  protected readonly fuerza = computed(() => {
-    const clave = this.claveEscrita();
-    if (!clave) {
-      return 0;
-    }
-    let puntos = 0;
-    if (clave.length >= 6) puntos++;
-    if (clave.length >= 10) puntos++;
-    if (/[A-Z]/.test(clave) && /[a-z]/.test(clave)) puntos++;
-    if (/\d/.test(clave) && /[^A-Za-z0-9]/.test(clave)) puntos++;
-    return Math.min(puntos, 4);
-  });
-
-  protected readonly etiquetaFuerza = computed(() =>
-    this.fuerza() === 0 ? '' : NIVELES[this.fuerza() - 1],
-  );
-
-  protected readonly coinciden = computed(() => {
-    const confirmacion = this.confirmacionEscrita();
-    return confirmacion.length > 0 && confirmacion === this.claveEscrita();
   });
 
   constructor() {
@@ -903,20 +574,6 @@ export class DatosContacto {
       this.cuentas.sesion();
       this.aplicarSesion();
     });
-    this.formulario.controls.clave.valueChanges.subscribe((valor) => {
-      this.errorCuenta.set(null);
-      this.claveEscrita.set(valor);
-      // Si se corrige la contraseña, la confirmación tiene que revalidarse.
-      this.formulario.controls.confirmacion.updateValueAndValidity({ emitEvent: false });
-    });
-    this.formulario.controls.confirmacion.valueChanges.subscribe((valor) =>
-      this.confirmacionEscrita.set(valor),
-    );
-  }
-
-  /** El campo de contraseña solo aparece si se va a crear la cuenta acá. */
-  protected pideClave(): boolean {
-    return !this.cuentas.haySesion() && this.modo() === 'cuenta';
   }
 
   protected invalido(campo: string): boolean {
@@ -924,14 +581,8 @@ export class DatosContacto {
     return !!control && control.invalid && control.touched;
   }
 
-  protected cambiarModo(modo: Modo): void {
-    this.modo.set(modo);
-    this.errorCuenta.set(null);
-    this.ajustarClave();
-  }
-
   protected confirmar(): void {
-    // Una visita, una confirmación: el doble clic no puede duplicarla.
+    // Un turno, una confirmación: el doble clic no puede duplicarlo.
     if (this.enviando()) {
       return;
     }
@@ -946,8 +597,6 @@ export class DatosContacto {
     // propios turnos pasan a bloquearle horarios como a cualquiera.
     this.store.identificar(v.email);
 
-    // Se revisa ANTES de crear la cuenta: si el horario ya no está, no dejamos
-    // a alguien registrado con un turno que nunca existió.
     const previo = this.store.revisar();
     if (previo) {
       this.rechazar(previo);
@@ -955,25 +604,6 @@ export class DatosContacto {
     }
 
     this.enviando.set(true);
-
-    // Crear la cuenta primero: si el email ya existe, no se confirma el turno.
-    if (this.pideClave()) {
-      const error = this.cuentas.registrar(
-        {
-          nombre: v.nombre,
-          apellido: v.apellido,
-          email: v.email,
-          telefono: v.telefono,
-          dni: v.dni || undefined,
-        },
-        v.clave,
-      );
-      if (error) {
-        this.errorCuenta.set(error);
-        this.enviando.set(false);
-        return;
-      }
-    }
 
     const resultado = this.store.confirmar({
       nombre: v.nombre,
@@ -1036,7 +666,7 @@ export class DatosContacto {
     this.navegacion.ir('agendar');
   }
 
-  /** Con sesión iniciada los datos vienen cargados y no se pide contraseña. */
+  /** Con sesión iniciada los datos vienen cargados. */
   private aplicarSesion(): void {
     const usuario = this.cuentas.sesion();
     if (usuario) {
@@ -1048,20 +678,5 @@ export class DatosContacto {
         dni: usuario.dni ?? '',
       });
     }
-    this.ajustarClave();
   }
-
-  private ajustarClave(): void {
-    const pide = this.pideClave();
-    const clave = this.formulario.controls.clave;
-    clave.setValidators(pide ? [Validators.required, Validators.minLength(6)] : []);
-    clave.updateValueAndValidity({ emitEvent: false });
-
-    const confirmacion = this.formulario.controls.confirmacion;
-    confirmacion.setValidators(pide ? [Validators.required, this.igualAClave] : []);
-    confirmacion.updateValueAndValidity({ emitEvent: false });
-  }
-
-  private readonly igualAClave = (control: AbstractControl): ValidationErrors | null =>
-    control.value === this.formulario.controls.clave.value ? null : { noCoincide: true };
 }
