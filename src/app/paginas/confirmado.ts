@@ -516,6 +516,20 @@ const PREPARATIVOS = [
       .acciones .btn {
         width: 100%;
       }
+      /* Igual que el combinable: en angosto la fila icono/texto/botón deja al
+         texto un canal de pocos píxeles y el botón largo se sale del panel. */
+      .invitacion {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+      .invitacion-icono {
+        margin: 0 auto;
+      }
+      .invitacion .btn,
+      .combinable .btn {
+        width: 100%;
+      }
     }
     /* En pantallas angostas la fila etiqueta/valor deja al valor un canal de
        cien y pico de píxeles: cada dato queda cortado en tres renglones. */
