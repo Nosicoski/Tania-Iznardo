@@ -192,7 +192,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
 
                   <footer class="acciones-pasado">
                     <button type="button" class="btn btn-primario" (click)="reagendar(v)">
-                      Reagendar
+                      Volver a agendar
                     </button>
                     <button type="button" class="btn btn-borde" (click)="alternarDetalle(v.clave)">
                       {{ detalleAbierto() === v.clave ? 'Ocultar detalle' : 'Ver detalle' }}
