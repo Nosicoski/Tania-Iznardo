@@ -167,11 +167,13 @@ const PREPARATIVOS = [
                 />
               </svg>
             </span>
+            <!-- Sumarlo fue decisión del paciente en el paso anterior: el
+                 texto continúa lo que él eligió, no le reclama nada. -->
             <div class="combinable-textos">
-              <strong>Te falta agendar {{ combinable.nombre }}</strong>
+              <strong>Continuá con {{ combinable.nombre }}</strong>
               <span>
-                {{ duracion(combinable.duracionMin) }} · {{ precio(combinable.precio) }} ·
-                elegí su propio día y horario.
+                Lo sumaste a tu reserva: ahora elegí su día y horario ·
+                {{ duracion(combinable.duracionMin) }} · {{ precio(combinable.precio) }}
               </span>
             </div>
             <button type="button" class="btn btn-primario" (click)="agendarCombinable()">
@@ -187,9 +189,13 @@ const PREPARATIVOS = [
               <button type="button" class="btn btn-primario" (click)="irAMisTurnos()">
                 Ver mis turnos
               </button>
-              <button type="button" class="btn btn-borde" (click)="seguirAgendando()">
-                Seguir agendando
-              </button>
+              <!-- Con un servicio a medio agendar, "Seguir agendando" compite
+                   con la única acción que queda pendiente: no se muestra. -->
+              @if (!store.combinablePendiente()) {
+                <button type="button" class="btn btn-borde" (click)="seguirAgendando()">
+                  Seguir agendando
+                </button>
+              }
             </div>
           } @else {
             <!-- Sin cuenta: el alta sale gratis porque los datos ya están cargados -->
@@ -216,11 +222,13 @@ const PREPARATIVOS = [
                 Crear cuenta para futuros turnos
               </button>
             </div>
-            <div class="acciones">
-              <button type="button" class="btn btn-borde" (click)="seguirAgendando()">
-                Seguir agendando
-              </button>
-            </div>
+            @if (!store.combinablePendiente()) {
+              <div class="acciones">
+                <button type="button" class="btn btn-borde" (click)="seguirAgendando()">
+                  Seguir agendando
+                </button>
+              </div>
+            }
           }
         </div>
       </div>

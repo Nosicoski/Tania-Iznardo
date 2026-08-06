@@ -7,6 +7,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Cuenta, Cuentas } from '../servicios/cuentas';
+import { normalizarTelefono, telefonoArgentino } from '../datos/telefono';
 
 const NIVELES = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
 
@@ -197,17 +198,29 @@ const ESPERA_EXITO_MS = 1500;
                 <div class="par">
                   <label class="campo">
                     <span class="etiqueta">Teléfono</span>
-                    <span class="control" [class.relleno]="rellenando('telefono')">
+                    <!-- Mismo destello que el autorrelleno cuando le acomodamos
+                         el formato a lo que trajo el navegador. -->
+                    <span
+                      class="control"
+                      [class.relleno]="rellenando('telefono') || telefonoAjustado()"
+                    >
                       <span class="prefijo">+54</span>
                       <input
                         type="tel"
                         formControlName="telefono"
                         placeholder="3511234567"
                         inputmode="numeric"
+                        autocomplete="tel"
                       />
                     </span>
                     @if (invalido('telefono')) {
-                      <span class="error" role="alert">Solo números, sin el 0 y sin el 15.</span>
+                      <span class="error" role="alert">
+                        @if (formulario.controls.telefono.hasError('otroPais')) {
+                          Por ahora atendemos solo con teléfonos de Argentina (+54).
+                        } @else {
+                          Solo números, sin el 0 y sin el 15.
+                        }
+                      </span>
                     }
                   </label>
                   <label class="campo">
@@ -229,100 +242,8 @@ const ESPERA_EXITO_MS = 1500;
 
               <!-- En el alta las dos claves comparten fila: el popup entra sin scroll -->
               <div [class.par]="!esLogin()">
-              <label class="campo">
-                <span class="etiqueta">Contraseña</span>
-                <span class="control">
-                  <span class="icono" aria-hidden="true">
-                    <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
-                      <rect
-                        x="4"
-                        y="8.5"
-                        width="12"
-                        height="7.5"
-                        rx="2"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                      />
-                      <path
-                        d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      />
-                    </svg>
-                  </span>
-                  <input
-                    [type]="verClave() ? 'text' : 'password'"
-                    formControlName="clave"
-                    [placeholder]="esLogin() ? 'Tu contraseña' : 'Mínimo 6 caracteres'"
-                    [attr.autocomplete]="esLogin() ? 'current-password' : 'new-password'"
-                  />
-                  <button
-                    type="button"
-                    class="ojo"
-                    (click)="verClave.set(!verClave())"
-                    [attr.aria-label]="verClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                    [attr.aria-pressed]="verClave()"
-                  >
-                    @if (verClave()) {
-                      <svg
-                        viewBox="0 0 20 20"
-                        width="17"
-                        height="17"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                        />
-                        <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                        <path
-                          d="m4 16 12-12"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    } @else {
-                      <svg
-                        viewBox="0 0 20 20"
-                        width="17"
-                        height="17"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                        />
-                        <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5" />
-                      </svg>
-                    }
-                  </button>
-                </span>
-
-                @if (!esLogin()) {
-                  <!-- Medidor: solo orienta, no bloquea el alta -->
-                  <span class="fuerza">
-                    <span class="barras" aria-hidden="true">
-                      @for (i of [0, 1, 2, 3]; track i) {
-                        <span class="barra" [class.llena]="i < fuerza()"></span>
-                      }
-                    </span>
-                    <span class="nivel">{{ etiquetaFuerza() }}</span>
-                  </span>
-                }
-                @if (invalido('clave')) {
-                  <span class="error" role="alert">Usá al menos 6 caracteres.</span>
-                }
-              </label>
-
-              @if (!esLogin()) {
                 <label class="campo">
-                  <span class="etiqueta">Repetila</span>
+                  <span class="etiqueta">Contraseña</span>
                   <span class="control">
                     <span class="icono" aria-hidden="true">
                       <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
@@ -344,34 +265,19 @@ const ESPERA_EXITO_MS = 1500;
                       </svg>
                     </span>
                     <input
-                      [type]="verConfirmacion() ? 'text' : 'password'"
-                      formControlName="confirmacion"
-                      placeholder="Otra vez"
-                      autocomplete="new-password"
+                      [type]="verClave() ? 'text' : 'password'"
+                      formControlName="clave"
+                      [placeholder]="esLogin() ? 'Tu contraseña' : 'Mínimo 6 caracteres'"
+                      [attr.autocomplete]="esLogin() ? 'current-password' : 'new-password'"
                     />
-                    @if (coinciden()) {
-                      <span class="tilde" aria-hidden="true">
-                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none">
-                          <path
-                            d="M3 8.5 6.5 12 13 4.5"
-                            stroke="currentColor"
-                            stroke-width="2.4"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    }
                     <button
                       type="button"
                       class="ojo"
-                      (click)="verConfirmacion.set(!verConfirmacion())"
-                      [attr.aria-label]="
-                        verConfirmacion() ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                      "
-                      [attr.aria-pressed]="verConfirmacion()"
+                      (click)="verClave.set(!verClave())"
+                      [attr.aria-label]="verClave() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                      [attr.aria-pressed]="verClave()"
                     >
-                      @if (verConfirmacion()) {
+                      @if (verClave()) {
                         <svg
                           viewBox="0 0 20 20"
                           width="17"
@@ -410,11 +316,130 @@ const ESPERA_EXITO_MS = 1500;
                       }
                     </button>
                   </span>
-                  @if (invalido('confirmacion')) {
-                    <span class="error" role="alert">Las contraseñas no coinciden.</span>
+
+                  @if (!esLogin()) {
+                    <!-- Medidor: solo orienta, no bloquea el alta -->
+                    <span class="fuerza">
+                      <span class="barras" aria-hidden="true">
+                        @for (i of [0, 1, 2, 3]; track i) {
+                          <span class="barra" [class.llena]="i < fuerza()"></span>
+                        }
+                      </span>
+                      <span class="nivel">{{ etiquetaFuerza() }}</span>
+                    </span>
+                  }
+                  @if (invalido('clave')) {
+                    <span class="error" role="alert">Usá al menos 6 caracteres.</span>
                   }
                 </label>
-              }
+
+                @if (!esLogin()) {
+                  <label class="campo">
+                    <span class="etiqueta">Repetila</span>
+                    <span class="control">
+                      <span class="icono" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
+                          <rect
+                            x="4"
+                            y="8.5"
+                            width="12"
+                            height="7.5"
+                            rx="2"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                          />
+                          <path
+                            d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        [type]="verConfirmacion() ? 'text' : 'password'"
+                        formControlName="confirmacion"
+                        placeholder="Otra vez"
+                        autocomplete="new-password"
+                      />
+                      @if (coinciden()) {
+                        <span class="tilde" aria-hidden="true">
+                          <svg viewBox="0 0 16 16" width="12" height="12" fill="none">
+                            <path
+                              d="M3 8.5 6.5 12 13 4.5"
+                              stroke="currentColor"
+                              stroke-width="2.4"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        </span>
+                      }
+                      <button
+                        type="button"
+                        class="ojo"
+                        (click)="verConfirmacion.set(!verConfirmacion())"
+                        [attr.aria-label]="
+                          verConfirmacion() ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                        "
+                        [attr.aria-pressed]="verConfirmacion()"
+                      >
+                        @if (verConfirmacion()) {
+                          <svg
+                            viewBox="0 0 20 20"
+                            width="17"
+                            height="17"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                            />
+                            <circle
+                              cx="10"
+                              cy="10"
+                              r="2"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                            />
+                            <path
+                              d="m4 16 12-12"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                            />
+                          </svg>
+                        } @else {
+                          <svg
+                            viewBox="0 0 20 20"
+                            width="17"
+                            height="17"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 10s2.8-4.5 7-4.5S17 10 17 10s-2.8 4.5-7 4.5S3 10 3 10Z"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                            />
+                            <circle
+                              cx="10"
+                              cy="10"
+                              r="2"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                            />
+                          </svg>
+                        }
+                      </button>
+                    </span>
+                    @if (invalido('confirmacion')) {
+                      <span class="error" role="alert">Las contraseñas no coinciden.</span>
+                    }
+                  </label>
+                }
               </div>
 
               @if (esLogin()) {
@@ -950,6 +975,8 @@ export class ModalCuenta {
 
   /** Campos que están destellando por el autorrelleno. */
   private readonly recienRellenados = signal<readonly string[]>([]);
+  /** Le acabamos de acomodar el formato al teléfono: dura lo que el destello. */
+  protected readonly telefonoAjustado = signal(false);
   private temporizadores: ReturnType<typeof setTimeout>[] = [];
 
   private readonly claveEscrita = signal('');
@@ -1006,6 +1033,25 @@ export class ModalCuenta {
     this.formulario.controls.confirmacion.valueChanges.subscribe((valor) =>
       this.confirmacionEscrita.set(valor),
     );
+    // Igual que en el paso de datos: sirve para el tipeo a mano (con el 0 y el
+    // 15) y para el autocompletado del navegador (que trae el "+54" entero).
+    this.formulario.controls.telefono.valueChanges.subscribe((valor) =>
+      this.acomodarTelefono(valor),
+    );
+  }
+
+  /**
+   * Deja en el campo el número local pelado. Si vino de otro país no se toca:
+   * el validador lo marca y el paciente decide qué poner.
+   */
+  private acomodarTelefono(valor: string): void {
+    const { valor: limpio, otroPais } = normalizarTelefono(valor);
+    if (otroPais || limpio === valor) {
+      return;
+    }
+    this.formulario.controls.telefono.setValue(limpio, { emitEvent: false });
+    this.telefonoAjustado.set(true);
+    this.temporizadores.push(setTimeout(() => this.telefonoAjustado.set(false), DESTELLO_MS));
   }
 
   protected ir(modo: 'login' | 'registro'): void {
@@ -1097,6 +1143,7 @@ export class ModalCuenta {
     this.temporizadores.forEach(clearTimeout);
     this.temporizadores = [];
     this.recienRellenados.set([]);
+    this.telefonoAjustado.set(false);
   }
 
   protected enviar(): void {
@@ -1143,7 +1190,7 @@ export class ModalCuenta {
       control.updateValueAndValidity({ emitEvent: false });
     }
     const telefono = this.formulario.controls.telefono;
-    telefono.setValidators(registro ? [Validators.required, Validators.pattern(/^\d{8,12}$/)] : []);
+    telefono.setValidators(registro ? [Validators.required, telefonoArgentino] : []);
     telefono.updateValueAndValidity({ emitEvent: false });
 
     const dni = this.formulario.controls.dni;

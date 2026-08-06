@@ -1,5 +1,6 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { normalizarTelefono, telefonoArgentino } from '../datos/telefono';
 import { NavegacionReserva } from '../servicios/navegacion-reserva';
 import { Stepper } from '../componentes/stepper';
 import { ResumenReserva } from '../componentes/resumen-reserva';
@@ -162,7 +163,8 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
 
               <label class="campo">
                 <span class="etiqueta">Teléfono <i>*</i></span>
-                <span class="control">
+                <!-- El destello avisa, sin cartel, que le acomodamos el formato -->
+                <span class="control" [class.ajustado]="telefonoAjustado()">
                   <span class="prefijo">+54</span>
                   <input
                     type="tel"
@@ -175,7 +177,11 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
                 <span class="ayuda"> Con código de área, sin el 0 y sin el 15. </span>
                 @if (invalido('telefono')) {
                   <span class="error" role="alert">
-                    Ingresá un teléfono válido (solo números).
+                    @if (formulario.controls.telefono.hasError('otroPais')) {
+                      Por ahora atendemos solo con teléfonos de Argentina (+54).
+                    } @else {
+                      Ingresá un teléfono válido (solo números).
+                    }
                   </span>
                 }
               </label>
@@ -243,7 +249,6 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
               Te notificaremos sobre tu turno al correo y/o teléfono que indiques.
             </p>
           </form>
-
         </div>
 
         <app-resumen-reserva
@@ -444,6 +449,29 @@ const MOTIVOS: Record<FalloConfirmacion, string> = {
       align-items: stretch;
       padding: 0.15rem 0.7rem;
     }
+    /*
+     * Formato acomodado (se pegó o autocompletó "+54 9 351…"): el campo se
+     * enciende y se apaga solo. Anima color nada más, no toca layout.
+     */
+    .control.ajustado {
+      animation: destello 0.62s ease-out;
+    }
+    @keyframes destello {
+      0%,
+      70% {
+        background: var(--primario-suave);
+        border-color: var(--primario);
+      }
+      100% {
+        background: var(--blanco);
+        border-color: var(--borde);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .control.ajustado {
+        animation: none;
+      }
+    }
     .icono {
       color: var(--neutro-claro);
       display: grid;
@@ -557,12 +585,15 @@ export class DatosContacto {
   protected readonly enviando = signal(false);
   /** Con el turno ya confirmado no tiene sentido ofrecer otro horario. */
   protected readonly puedeReelegir = signal(true);
+  /** Le acabamos de acomodar el formato al teléfono: dura lo que el destello. */
+  protected readonly telefonoAjustado = signal(false);
+  private destello?: ReturnType<typeof setTimeout>;
 
   protected readonly formulario = this.fb.group({
     nombre: ['', Validators.required],
     apellido: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    telefono: ['', [Validators.required, Validators.pattern(/^\d{8,12}$/)]],
+    telefono: ['', [Validators.required, telefonoArgentino]],
     // Obligatorio siempre: el consultorio lo necesita para la ficha.
     dni: ['', [Validators.required, Validators.pattern(/^\d{7,8}$/)]],
     observaciones: [''],
@@ -574,6 +605,27 @@ export class DatosContacto {
       this.cuentas.sesion();
       this.aplicarSesion();
     });
+    // Sirve para las dos formas de cargarlo: tipeado a mano (con el 0 y el 15)
+    // y autocompletado por el navegador (que trae el "+54" entero).
+    this.formulario.controls.telefono.valueChanges.subscribe((valor) =>
+      this.acomodarTelefono(valor),
+    );
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.destello));
+  }
+
+  /**
+   * Deja en el campo el número local pelado. Si vino de otro país no se toca:
+   * el validador lo marca y el paciente decide qué poner.
+   */
+  private acomodarTelefono(valor: string): void {
+    const { valor: limpio, otroPais } = normalizarTelefono(valor);
+    if (otroPais || limpio === valor) {
+      return;
+    }
+    this.formulario.controls.telefono.setValue(limpio, { emitEvent: false });
+    clearTimeout(this.destello);
+    this.telefonoAjustado.set(true);
+    this.destello = setTimeout(() => this.telefonoAjustado.set(false), 700);
   }
 
   protected invalido(campo: string): boolean {

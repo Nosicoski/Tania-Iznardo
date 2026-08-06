@@ -231,7 +231,7 @@ interface Chip {
               </svg>
             </span>
             <span class="combinar-copy">
-              <b>¿Aprovechás y sumás otro servicio?</b>
+              <b>¿Querés agregar otro servicio?</b>
               <i>Se agenda aparte, con su propio día y horario.</i>
             </span>
           </div>
@@ -302,6 +302,12 @@ interface Chip {
               </button>
             </article>
           }
+
+          <!-- "Agendamos después" no dice cuándo: esto sí. Va siempre y una
+               sola vez para toda la lista, porque aparecer al tocar el botón
+               estiraría el hueco reservado de horarios y el paso ganaría
+               scroll. -->
+          <p class="combinable-cuando">El día y el horario los elegís al confirmar este turno.</p>
         </ng-template>
       }
     </div>
@@ -705,6 +711,13 @@ interface Chip {
     .combinable-btn.activo:hover {
       background: var(--primario-oscuro);
     }
+    .combinable-cuando {
+      margin: 0.55rem 0 0;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      color: var(--neutro);
+      text-align: center;
+    }
 
     /* Estado vacío dentro del hueco reservado: centrado y sin separador, así
        se lee como "acá van a aparecer los horarios" y no como algo cortado. */
@@ -745,9 +758,10 @@ interface Chip {
         padding: 1rem;
       }
       /* Con la tarjeta más angosta los horarios ocupan más filas, así que el
-         hueco reservado tiene que ser más alto que en escritorio. */
+         hueco reservado tiene que ser más alto que en escritorio. Incluye el
+         renglón de "cuándo se agenda" del combinable. */
       .zona-horarios {
-        min-height: 428px;
+        min-height: 444px;
       }
       /* El dedo necesita más blanco que el puntero */
       .volver {
@@ -877,6 +891,19 @@ export class Agendar {
   });
 
   constructor() {
+    // Entrar con el calendario vacío obliga a un clic que casi siempre es el
+    // mismo: dejamos elegido el primer día con lugar. Si ya hay fecha (se
+    // vuelve desde el paso 3, o se soltó el horario) no se toca nada.
+    effect(() => {
+      if (this.store.fecha()) {
+        return;
+      }
+      const primero = this.disponibilidad.primerDiaConCupo(this.store.consulta());
+      if (primero) {
+        this.store.elegirFecha(primero);
+      }
+    });
+
     // Al volver desde el paso de datos, mostrar el período del día ya elegido.
     effect(() => {
       const fecha = this.store.fecha();

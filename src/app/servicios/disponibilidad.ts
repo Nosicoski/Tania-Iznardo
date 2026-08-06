@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Intervalo, Profesional, Servicio, Tramo } from '../modelos';
-import { aHora, aMinutos, conHora, inicioDelDia } from '../datos/formato';
+import { aHora, aMinutos, conHora, inicioDelDia, sumarDias } from '../datos/formato';
 import { PROFESIONALES, profesionalesPara } from '../datos/profesionales';
 import { AgendaGuardada } from './agenda-guardada';
 
@@ -146,6 +146,22 @@ export class Disponibilidad {
       }
     }
     return false;
+  }
+
+  /**
+   * Primer día con al menos un horario libre, contando desde hoy. Con esto el
+   * paso 2 abre con un día ya elegido en vez de un calendario vacío. `dias`
+   * cubre el mismo alcance que el calendario (3 meses).
+   */
+  primerDiaConCupo(consulta: Consulta, dias = 92): Date | null {
+    const hoy = inicioDelDia(new Date());
+    for (let i = 0; i < dias; i++) {
+      const fecha = sumarDias(hoy, i);
+      if (this.tieneCupo(consulta, fecha)) {
+        return fecha;
+      }
+    }
+    return null;
   }
 
   /**
