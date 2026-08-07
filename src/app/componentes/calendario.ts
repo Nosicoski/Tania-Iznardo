@@ -147,10 +147,11 @@ interface Celda {
       min-width: 0;
     }
     .titulo {
-      font-weight: 700;
-      font-size: 1rem;
+      font-weight: 600;
+      font-size: var(--txt-base);
       color: var(--secundario);
       white-space: nowrap;
+      padding: 0 0.15rem;
     }
     .flecha {
       width: 32px;
@@ -158,10 +159,13 @@ interface Celda {
       border-radius: 50%;
       border: none;
       background: none;
-      color: var(--primario);
-      font-size: 1.3rem;
+      color: var(--primario-fuerte);
+      font-size: var(--txt-lg);
       line-height: 1;
       flex-shrink: 0;
+      transition:
+        background var(--transicion),
+        color var(--transicion);
     }
     .flecha:hover:not(:disabled) {
       background: var(--primario-suave);
@@ -172,15 +176,18 @@ interface Celda {
     }
     .cambiar-vista {
       flex-shrink: 0;
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       display: grid;
       place-items: center;
       background: var(--blanco);
       border: 1.5px solid var(--borde);
       border-radius: 50%;
       padding: 0;
-      color: var(--primario);
+      color: var(--primario-fuerte);
+      transition:
+        border-color var(--transicion),
+        background var(--transicion);
     }
     .cambiar-vista:hover {
       border-color: var(--primario);
@@ -197,10 +204,10 @@ interface Celda {
     }
     .semana span {
       text-align: center;
-      font-size: 0.7rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
-      letter-spacing: 0.06em;
-      color: var(--neutro);
+      letter-spacing: 0.12em;
+      color: var(--neutro-claro);
     }
     .dia {
       background: none;
@@ -209,33 +216,49 @@ interface Celda {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.2rem;
+      gap: 0.25rem;
     }
+    /*
+     * Los días con cupo llevan un contorno tenue además del punto: antes la
+     * única diferencia entre "hay lugar" y "no atiende" era un punto de 5px,
+     * que en el celular no se registra.
+     */
     .numero {
       width: 36px;
       height: 36px;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      font-weight: 700;
-      font-size: 0.95rem;
+      font-weight: 600;
+      font-size: var(--txt-base);
       color: var(--secundario);
+      border: 1px solid transparent;
+      transition:
+        background var(--transicion),
+        border-color var(--transicion),
+        color var(--transicion);
+    }
+    .dia:not(:disabled) .numero {
+      border-color: var(--borde);
     }
     .punto {
-      width: 5px;
-      height: 5px;
+      width: 4px;
+      height: 4px;
       border-radius: 50%;
       background: var(--primario);
     }
+    /* Sin cupo: solo el número apagado, sin contorno ni punto. */
     .dia:disabled .numero {
       color: var(--neutro-claro);
-      opacity: 0.65;
+      opacity: 0.55;
     }
     .dia:not(:disabled, .seleccionado):hover .numero {
       background: var(--primario-suave);
+      border-color: var(--primario);
     }
     .dia.seleccionado .numero {
-      background: var(--primario);
+      background: var(--primario-fuerte);
+      border-color: var(--primario-fuerte);
       color: var(--blanco);
     }
     .dia.seleccionado .punto {
@@ -249,10 +272,10 @@ interface Celda {
       .numero {
         width: 32px;
         height: 32px;
-        font-size: 0.9rem;
+        font-size: var(--txt-sm);
       }
       .titulo {
-        font-size: 0.9rem;
+        font-size: var(--txt-sm);
       }
       .cambiar-vista {
         width: 32px;

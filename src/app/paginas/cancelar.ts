@@ -72,7 +72,7 @@ import { Negocio } from '../servicios/negocio';
       border-radius: var(--radio-chico);
       padding: 0.85rem 1rem;
       margin: 0 0 1.75rem;
-      font-size: 0.84rem;
+      font-size: var(--txt-sm);
       color: var(--secundario);
     }
     .nota span {

@@ -7,30 +7,9 @@ import { AgendaGuardada } from '../servicios/agenda-guardada';
 import { Notificaciones } from '../servicios/notificaciones';
 import { Profesional } from '../modelos';
 import { aHora, duracionTexto, fechaLarga, precioARS } from '../datos/formato';
+import { imagenDe } from '../datos/catalogo';
+import { PREPARATIVOS } from '../datos/preparativos';
 
-/** Recordatorios de la demo: falta confirmarlos con el consultorio. */
-const PREPARATIVOS = [
-  {
-    titulo: 'Llegá 10 minutos antes',
-    detalle: 'Así podemos completar tu ficha con tranquilidad antes de empezar.',
-  },
-  {
-    titulo: 'Traé ropa cómoda',
-    detalle: 'Calzas o short y remera; en la sesión vas a necesitar moverte.',
-  },
-  {
-    titulo: 'Estudios y documentación',
-    detalle: 'Si tenés radiografías, resonancias o estudios recientes, traelos.',
-  },
-  {
-    titulo: 'DNI y credencial',
-    detalle: 'Documento y, si corresponde, la credencial de tu obra social.',
-  },
-  {
-    titulo: 'Evitá comidas pesadas',
-    detalle: 'Mejor no comer abundante en la hora previa al turno.',
-  },
-];
 
 @Component({
   selector: 'app-confirmado',
@@ -66,6 +45,11 @@ const PREPARATIVOS = [
             }
           </p>
 
+          <!-- Resumen del turno. La invitación a crear la cuenta vive adentro
+               de esta misma ficha, al pie: es un dato más del turno ("dónde
+               queda guardado"), no una acción que compita con la de seguir
+               agendando. -->
+          <div class="resumen">
           <dl class="detalle">
             @if (store.fecha(); as f) {
               <div class="cuando">
@@ -103,6 +87,19 @@ const PREPARATIVOS = [
               <dd class="valor">{{ precio(store.total()) }} · se abona en el consultorio</dd>
             </div>
           </dl>
+
+          @if (!cuentas.haySesion()) {
+            <div class="guardar">
+              <span class="guardar-textos">
+                <strong>Guardá este turno en tu cuenta</strong>
+                <span>Solo te falta elegir una contraseña.</span>
+              </span>
+              <button type="button" class="guardar-btn" (click)="crearCuenta()">
+                Crear cuenta
+              </button>
+            </div>
+          }
+          </div>
         </div>
 
         <!-- Recordatorios mockeados: falta la lista real del consultorio -->
@@ -144,40 +141,38 @@ const PREPARATIVOS = [
           }
         </section>
 
-        <!-- El combinable que aceptó en el paso anterior: se agenda aparte -->
+        <!-- El combinable que aceptó en el paso anterior: se agenda aparte.
+             Va en el verde de la marca, no en ámbar: es la invitación a seguir,
+             y el ámbar en una interfaz se lee como advertencia. -->
         @if (store.combinablePendiente(); as combinable) {
-          <section class="combinable">
-            <span class="combinable-icono" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                <rect
-                  x="3.2"
-                  y="4.8"
-                  width="17.6"
-                  height="15"
-                  rx="3"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                />
-                <path d="M3.2 9.4h17.6" stroke="currentColor" stroke-width="1.6" />
-                <path
-                  d="M12 12v4M10 14h4"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                />
-              </svg>
+          <section class="siguiente">
+            <span class="siguiente-foto">
+              @if (fotoOk()) {
+                <img [src]="imagen(combinable)" alt="" aria-hidden="true" (error)="fotoOk.set(false)" />
+              } @else {
+                <span class="siguiente-inicial" aria-hidden="true">{{ combinable.nombre[0] }}</span>
+              }
             </span>
-            <!-- Sumarlo fue decisión del paciente en el paso anterior: el
-                 texto continúa lo que él eligió, no le reclama nada. -->
-            <div class="combinable-textos">
-              <strong>Continuá con {{ combinable.nombre }}</strong>
-              <span>
-                Lo sumaste a tu reserva: ahora elegí su día y horario ·
-                {{ duracion(combinable.duracionMin) }} · {{ precio(combinable.precio) }}
+            <div class="siguiente-textos">
+              <span class="siguiente-rotulo">Lo sumaste a tu reserva</span>
+              <strong class="siguiente-nombre">{{ combinable.nombre }}</strong>
+              <span class="siguiente-meta">
+                {{ duracion(combinable.duracionMin) }}
+                <i>·</i>
+                {{ precio(combinable.precio) }}
               </span>
             </div>
-            <button type="button" class="btn btn-primario" (click)="agendarCombinable()">
-              Elegir día y horario
+            <button type="button" class="siguiente-btn" (click)="agendarCombinable()">
+              Continuá agendando
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" aria-hidden="true">
+                <path
+                  d="M3 8h9m0 0L8.5 4.5M12 8l-3.5 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.9"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
             </button>
           </section>
         }
@@ -197,38 +192,14 @@ const PREPARATIVOS = [
                 </button>
               }
             </div>
-          } @else {
-            <!-- Sin cuenta: el alta sale gratis porque los datos ya están cargados -->
-            <div class="invitacion">
-              <span class="invitacion-icono" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-                  <circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8" />
-                  <path
-                    d="M4.8 19.5c.9-3.4 3.7-5.2 7.2-5.2s6.3 1.8 7.2 5.2"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-              <div class="invitacion-textos">
-                <strong>Guardá este turno en tu cuenta</strong>
-                <span>
-                  Ya tenemos tus datos: solo elegí una contraseña y los próximos turnos los reservás
-                  en dos clics.
-                </span>
-              </div>
-              <button type="button" class="btn btn-primario" (click)="crearCuenta()">
-                Crear cuenta para futuros turnos
+          } @else if (!store.combinablePendiente()) {
+            <!-- Crear la cuenta ya se ofrece dentro del resumen: acá queda
+                 solo la salida hacia el catálogo. -->
+            <div class="acciones">
+              <button type="button" class="btn btn-borde" (click)="seguirAgendando()">
+                Seguir agendando
               </button>
             </div>
-            @if (!store.combinablePendiente()) {
-              <div class="acciones">
-                <button type="button" class="btn btn-borde" (click)="seguirAgendando()">
-                  Seguir agendando
-                </button>
-              </div>
-            }
           }
         </div>
       </div>
@@ -252,40 +223,161 @@ const PREPARATIVOS = [
       flex-direction: column;
       min-width: 0;
     }
+    /*
+     * Sello de confirmación. Se arma en tres tiempos encadenados: el círculo
+     * entra con un rebote corto, una onda sale de su borde y recién después el
+     * tilde se dibuja trazo a trazo. Es el único momento de la app con
+     * animación de entrada, y para eso está: es el remate del flujo.
+     */
     .tilde {
-      width: 64px;
-      height: 64px;
+      position: relative;
+      width: 62px;
+      height: 62px;
       border-radius: 50%;
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
       display: grid;
       place-items: center;
-      margin: 0 auto 1.1rem;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 0 0 8px var(--primario-suave);
+      animation: tilde-entra 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+    /* Onda que se abre desde el borde y se apaga: una sola vez, sin latido. */
+    .tilde::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid var(--primario);
+      animation: tilde-onda 0.85s ease-out 0.3s both;
+    }
+    /*
+     * El tilde se dibuja con el trazo: 22 es un poco más que el largo real del
+     * path (~21), así que arranca escondido del todo y termina completo.
+     */
+    .tilde svg path {
+      stroke-dasharray: 22;
+      stroke-dashoffset: 22;
+      animation: tilde-traza 0.42s ease-out 0.3s forwards;
+    }
+    @keyframes tilde-entra {
+      from {
+        transform: scale(0.4);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    @keyframes tilde-onda {
+      from {
+        transform: scale(0.92);
+        opacity: 0.6;
+      }
+      to {
+        transform: scale(1.45);
+        opacity: 0;
+      }
+    }
+    @keyframes tilde-traza {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    /* Sin movimiento: el sello aparece ya hecho, no a medio dibujar. */
+    @media (prefers-reduced-motion: reduce) {
+      .tilde,
+      .tilde::after,
+      .tilde svg path {
+        animation: none;
+      }
+      .tilde svg path {
+        stroke-dashoffset: 0;
+      }
+      .tilde::after {
+        display: none;
+      }
     }
     h1 {
-      font-size: 1.5rem;
+      font-size: calc(var(--txt-2xl) * var(--display-ajuste));
     }
     .subtitulo {
       color: var(--neutro);
-      font-size: 0.9rem;
-      margin: 0.5rem 0 1.5rem;
+      font-size: var(--txt-sm);
+      line-height: 1.6;
+      margin: 0.6rem 0 1.75rem;
     }
     .subtitulo b {
       color: var(--secundario);
+      font-weight: 600;
+    }
+    /* Ficha del turno: los datos arriba y, al pie, dónde queda guardado. Una
+       sola caja para las dos cosas, separadas por un filete. */
+    .resumen {
+      background: var(--blanco);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio-chico);
+      overflow: hidden;
+      margin: 0 0 1rem;
     }
     .detalle {
-      background: var(--fondo);
-      border-radius: var(--radio-chico);
-      padding: 1rem 1.25rem;
-      margin: 0 0 1rem;
+      padding: 1.1rem 1.25rem;
+      margin: 0;
       text-align: left;
+    }
+    .guardar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      text-align: left;
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid var(--borde-suave);
+      background: var(--primario-tenue);
+    }
+    .guardar-textos {
+      display: flex;
+      flex-direction: column;
+      gap: 0.05rem;
+      min-width: 0;
+    }
+    .guardar-textos strong {
+      font-size: var(--txt-sm);
+      font-weight: 600;
+      color: var(--secundario);
+      line-height: 1.3;
+    }
+    .guardar-textos span {
+      font-size: var(--txt-xs);
+      color: var(--neutro);
+    }
+    /* Acción discreta: contorno fino, no relleno. Crear la cuenta es opcional
+       y no tiene que pesar más que seguir agendando. */
+    .guardar-btn {
+      flex-shrink: 0;
+      background: var(--blanco);
+      color: var(--primario-fuerte);
+      border: 1px solid var(--primario);
+      border-radius: 999px;
+      padding: 0.45rem 1rem;
+      font-size: var(--txt-xs);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition:
+        background var(--transicion),
+        color var(--transicion);
+    }
+    .guardar-btn:hover {
+      background: var(--primario-fuerte);
+      color: var(--blanco);
     }
     .detalle div {
       display: flex;
       justify-content: space-between;
       gap: 1rem;
       padding: 0.4rem 0;
-      font-size: 0.87rem;
+      font-size: var(--txt-sm);
     }
     dt {
       color: var(--neutro);
@@ -316,10 +408,10 @@ const PREPARATIVOS = [
       width: 17px;
       height: 17px;
       border-radius: 50%;
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
-      font-size: 0.63rem;
-      font-weight: 800;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
       vertical-align: middle;
       margin-right: 0.2rem;
     }
@@ -327,22 +419,23 @@ const PREPARATIVOS = [
     .hora {
       display: block;
       font-weight: 500;
-      font-size: 0.8rem;
+      font-size: var(--txt-xs);
       color: var(--neutro);
     }
     .hora {
-      color: var(--primario);
+      color: var(--primario-fuerte);
       font-weight: 700;
     }
     .valor {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     /* Prepará tu visita: plegado por defecto, se abre con "Ver detalles" */
     .preparar {
       text-align: left;
-      background: var(--primario-suave);
+      background: var(--primario-tenue);
+      border: 1px solid var(--borde-suave);
       border-radius: var(--radio-chico);
-      padding: 0.85rem 1.15rem;
+      padding: 0.95rem 1.15rem;
       margin: 0 0 1.25rem;
     }
     .preparar-cabecera {
@@ -352,16 +445,20 @@ const PREPARATIVOS = [
       gap: 1rem;
     }
     .preparar h2 {
-      font-size: 0.95rem;
       margin: 0;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--neutro);
     }
     /* Enlace de toda la vida: subrayado y clickeable, sin salir de la página */
     .enlace {
       background: none;
       border: none;
       padding: 0;
-      color: var(--primario);
-      font-size: 0.85rem;
+      color: var(--primario-fuerte);
+      font-size: var(--txt-sm);
       font-weight: 600;
       text-decoration: underline;
       cursor: pointer;
@@ -387,7 +484,7 @@ const PREPARATIVOS = [
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
       display: grid;
       place-items: center;
@@ -398,7 +495,7 @@ const PREPARATIVOS = [
       display: flex;
       flex-direction: column;
       gap: 0.05rem;
-      font-size: 0.82rem;
+      font-size: var(--txt-sm);
     }
     .texto b {
       color: var(--secundario);
@@ -408,54 +505,124 @@ const PREPARATIVOS = [
       line-height: 1.45;
     }
 
-    /* El combinable pendiente: la próxima acción natural, bien visible */
-    .combinable {
+    /*
+     * Lo que queda por agendar. Va en el verde de la marca (el ámbar de antes
+     * se leía como advertencia justo cuando queremos invitar a seguir) y con
+     * la foto del servicio, que es lo que hace que se vea como una propuesta y
+     * no como un aviso del sistema.
+     */
+    .siguiente {
       display: flex;
       align-items: center;
-      gap: 0.9rem;
+      gap: 1rem;
       text-align: left;
-      background: var(--terciario-suave);
-      border: 1.5px solid var(--terciario);
+      background:
+        linear-gradient(115deg, var(--primario-tenue), var(--primario-suave));
+      border: 1px solid var(--primario);
       border-radius: var(--radio);
-      padding: 0.9rem 1.1rem;
+      padding: 0.85rem 1rem;
       margin-bottom: 1.25rem;
     }
-    .combinable-icono {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: var(--terciario);
+    .siguiente-foto {
+      position: relative;
+      width: 66px;
+      height: 66px;
+      flex-shrink: 0;
+      border-radius: var(--radio-chico);
+      overflow: hidden;
+      background: var(--primario);
       color: var(--blanco);
       display: grid;
       place-items: center;
-      flex-shrink: 0;
+      /* Filete blanco: separa la foto del fondo tintado sin sumar una caja más */
+      box-shadow: 0 0 0 1px var(--blanco) inset;
     }
-    .combinable-textos {
+    .siguiente-foto img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .siguiente-inicial {
+      font-family: var(--fuente-titulo);
+      font-size: var(--txt-lg);
+      font-weight: 600;
+    }
+    .siguiente-textos {
       display: flex;
       flex-direction: column;
-      gap: 0.15rem;
+      gap: 0.1rem;
       flex: 1;
       min-width: 0;
     }
-    .combinable-textos strong {
-      font-size: 0.92rem;
+    .siguiente-rotulo {
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--primario-fuerte);
     }
-    .combinable-textos span {
-      font-size: 0.82rem;
+    .siguiente-nombre {
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-md) * var(--display-ajuste));
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--secundario);
+    }
+    .siguiente-meta {
+      font-size: var(--txt-xs);
       color: var(--neutro);
-      line-height: 1.4;
     }
-    .combinable .btn {
+    .siguiente-meta i {
+      font-style: normal;
+      color: var(--neutro-claro);
+      margin: 0 0.15rem;
+    }
+    .siguiente-btn {
       flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: var(--primario-fuerte);
+      color: var(--blanco);
+      border: none;
+      border-radius: 999px;
+      padding: 0.65rem 1.25rem;
+      font-size: var(--txt-sm);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      box-shadow: var(--sombra);
+      transition:
+        background var(--transicion),
+        box-shadow var(--transicion);
+    }
+    .siguiente-btn:hover {
+      background: var(--primario-oscuro);
+      box-shadow: var(--sombra-media);
+    }
+    /* La flecha se corre al pasar por encima: el gesto de "seguir". */
+    .siguiente-btn svg {
+      transition: transform var(--transicion);
+    }
+    .siguiente-btn:hover svg {
+      transform: translateX(2px);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .siguiente-btn svg {
+        transition: none;
+      }
     }
     @media (max-width: 720px) {
-      .combinable {
-        flex-direction: column;
-        align-items: stretch;
-        text-align: center;
+      .siguiente {
+        flex-wrap: wrap;
       }
-      .combinable-icono {
-        margin: 0 auto;
+      .siguiente-rotulo {
+        letter-spacing: 0.1em;
+      }
+      .siguiente-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 46px;
       }
     }
 
@@ -475,45 +642,6 @@ const PREPARATIVOS = [
       width: 100%;
       max-width: 320px;
     }
-    /* Invitación a crear la cuenta, para quien reservó sin registrarse */
-    .invitacion {
-      display: flex;
-      align-items: center;
-      gap: 0.9rem;
-      text-align: left;
-      background: var(--primario-suave);
-      border-radius: var(--radio);
-      padding: 0.9rem 1.1rem;
-      margin-bottom: 0.85rem;
-    }
-    .invitacion-icono {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: var(--primario);
-      color: var(--blanco);
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
-    .invitacion-textos {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-      flex: 1;
-      min-width: 0;
-    }
-    .invitacion-textos strong {
-      font-size: 0.92rem;
-    }
-    .invitacion-textos span {
-      font-size: 0.82rem;
-      color: var(--neutro);
-      line-height: 1.4;
-    }
-    .invitacion .btn {
-      flex-shrink: 0;
-    }
     @media (max-width: 720px) {
       .contenedor {
         padding-bottom: 3rem; /* sin barra "Tu reserva" en esta página */
@@ -524,19 +652,16 @@ const PREPARATIVOS = [
       .acciones .btn {
         width: 100%;
       }
-      /* Igual que el combinable: en angosto la fila icono/texto/botón deja al
-         texto un canal de pocos píxeles y el botón largo se sale del panel. */
-      .invitacion {
+      /* El pie del resumen se apila: en angosto, texto y botón en la misma
+         fila dejan al texto un canal de pocos píxeles. */
+      .guardar {
         flex-direction: column;
         align-items: stretch;
-        text-align: center;
+        gap: 0.75rem;
       }
-      .invitacion-icono {
-        margin: 0 auto;
-      }
-      .invitacion .btn,
-      .combinable .btn {
+      .guardar-btn {
         width: 100%;
+        min-height: 44px;
       }
     }
     /* En pantallas angostas la fila etiqueta/valor deja al valor un canal de
@@ -565,6 +690,9 @@ const PREPARATIVOS = [
 export class Confirmado {
   private readonly navegacion = inject(NavegacionReserva);
   protected readonly preparativos = PREPARATIVOS;
+  protected readonly imagen = imagenDe;
+  /** La foto del servicio que queda por agendar cargó bien. */
+  protected readonly fotoOk = signal(true);
   /** Los recordatorios arrancan plegados: el turno es lo que importa. */
   protected readonly verPreparativos = signal(false);
   protected readonly store = inject(ReservaStore);

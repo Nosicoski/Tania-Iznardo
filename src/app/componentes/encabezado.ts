@@ -110,21 +110,25 @@ import { CarruselTurnos } from './carrusel-turnos';
       gap: 1rem;
       background: var(--blanco);
       border-bottom: 1px solid var(--borde);
-      padding: 0.85rem 1.5rem;
+      padding: 0.9rem 1.5rem;
     }
     .marca {
       display: flex;
       flex-direction: column;
-      gap: 0.15rem;
+      gap: 0.1rem;
       min-width: 0;
     }
+    /* El nombre del consultorio es la firma de la página: va en la serif de
+       titulares, igual que los h1, y no en negrita de interfaz. */
     .nombre {
       background: none;
       border: none;
       padding: 0;
       text-align: left;
-      font-weight: 800;
-      font-size: 1.05rem;
+      font-family: var(--fuente-titulo);
+      font-weight: 600;
+      font-size: calc(var(--txt-md) * var(--display-ajuste));
+      letter-spacing: 0.01em;
       color: var(--secundario);
       white-space: nowrap;
     }
@@ -132,8 +136,8 @@ import { CarruselTurnos } from './carrusel-turnos';
       color: var(--secundario);
     }
     .rubro {
-      color: var(--primario);
-      font-size: 0.7rem;
+      color: var(--primario-fuerte);
+      font-size: var(--txt-2xs);
       font-weight: 700;
       letter-spacing: 0.14em;
       text-transform: uppercase;
@@ -145,7 +149,7 @@ import { CarruselTurnos } from './carrusel-turnos';
       align-items: center;
       gap: 0.35rem;
       color: var(--neutro);
-      font-size: 0.8rem;
+      font-size: var(--txt-xs);
       min-width: 0;
     }
     .direccion svg {
@@ -164,8 +168,8 @@ import { CarruselTurnos } from './carrusel-turnos';
       flex-shrink: 0;
     }
     .globo {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       border: 1.5px solid var(--borde);
       background: var(--blanco);
@@ -181,12 +185,12 @@ import { CarruselTurnos } from './carrusel-turnos';
     .globo[aria-expanded='true'] {
       border-color: var(--primario);
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     /* Con sesión iniciada el globo muestra las iniciales, en color de marca. */
     .globo.con-sesion {
-      background: var(--primario);
-      border-color: var(--primario);
+      background: var(--primario-fuerte);
+      border-color: var(--primario-fuerte);
       color: var(--blanco);
     }
     .globo.con-sesion:hover {
@@ -195,9 +199,10 @@ import { CarruselTurnos } from './carrusel-turnos';
       color: var(--blanco);
     }
     .iniciales {
-      font-size: 0.85rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
+      font-family: var(--fuente-titulo);
+      font-size: var(--txt-md);
+      font-weight: 600;
+      letter-spacing: 0.04em;
     }
     .menu {
       position: absolute;
@@ -209,7 +214,7 @@ import { CarruselTurnos } from './carrusel-turnos';
       background: var(--blanco);
       border: 1px solid var(--borde);
       border-radius: var(--radio);
-      box-shadow: 0 14px 34px rgba(22, 48, 47, 0.18);
+      box-shadow: var(--sombra-alta);
       padding: 0.4rem;
       animation: bajar 0.16s ease;
     }
@@ -233,10 +238,10 @@ import { CarruselTurnos } from './carrusel-turnos';
       min-width: 0;
     }
     .menu-cabecera strong {
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
     }
     .menu-cabecera span {
-      font-size: 0.75rem;
+      font-size: var(--txt-xs);
       color: var(--neutro);
       overflow: hidden;
       text-overflow: ellipsis;
@@ -247,14 +252,17 @@ import { CarruselTurnos } from './carrusel-turnos';
       background: none;
       border: none;
       border-radius: var(--radio-chico);
-      padding: 0.6rem 0.75rem;
-      font-size: 0.88rem;
+      padding: 0.65rem 0.75rem;
+      font-size: var(--txt-sm);
       font-weight: 600;
+      transition:
+        background var(--transicion),
+        color var(--transicion);
       color: var(--secundario);
     }
     .menu-item:hover {
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .salir:hover {
       background: rgba(179, 57, 47, 0.1);
@@ -272,7 +280,7 @@ import { CarruselTurnos } from './carrusel-turnos';
       border-radius: 999px;
       background: var(--terciario-suave);
       color: var(--terciario-oscuro);
-      font-size: 0.62rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -283,7 +291,7 @@ import { CarruselTurnos } from './carrusel-turnos';
         padding: 0.75rem 1rem;
       }
       .nombre {
-        font-size: 0.98rem;
+        font-size: var(--txt-base);
         overflow: hidden;
         text-overflow: ellipsis;
         min-height: 32px;
@@ -291,7 +299,7 @@ import { CarruselTurnos } from './carrusel-turnos';
         align-items: center;
       }
       .direccion {
-        font-size: 0.72rem;
+        font-size: var(--txt-2xs);
       }
       .globo {
         width: 38px;

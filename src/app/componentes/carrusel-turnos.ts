@@ -135,14 +135,14 @@ import { duracionTexto } from '../datos/formato';
       padding: 0 0.6rem 0.4rem;
     }
     .titulo {
-      font-size: 0.62rem;
-      font-weight: 800;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--neutro);
     }
     .contador {
-      font-size: 0.68rem;
+      font-size: var(--txt-2xs);
       color: var(--neutro-claro);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
@@ -200,7 +200,7 @@ import { duracionTexto } from '../datos/formato';
       flex: 1;
     }
     .titulo-textos strong {
-      font-size: 0.78rem;
+      font-size: var(--txt-xs);
       line-height: 1.25;
       color: var(--secundario);
       /* Dos líneas como máximo: si no, las tarjetas cambian de alto al pasar */
@@ -210,17 +210,17 @@ import { duracionTexto } from '../datos/formato';
       overflow: hidden;
     }
     .cuando {
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .estado {
       flex-shrink: 0;
       background: var(--blanco);
       border-radius: 999px;
       padding: 0.1rem 0.5rem;
-      font-size: 0.62rem;
-      font-weight: 800;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
       color: var(--neutro);
       white-space: nowrap;
     }
@@ -240,12 +240,12 @@ import { duracionTexto } from '../datos/formato';
     .tramos li {
       display: flex;
       gap: 0.4rem;
-      font-size: 0.71rem;
+      font-size: var(--txt-2xs);
       min-width: 0;
     }
     .tramo-hora {
-      font-weight: 800;
-      color: var(--primario);
+      font-weight: 700;
+      color: var(--primario-fuerte);
       flex-shrink: 0;
     }
     .tramo-nombre {
@@ -256,14 +256,14 @@ import { duracionTexto } from '../datos/formato';
     }
     .con-quien {
       margin: 0;
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       color: var(--neutro);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .pie {
-      font-size: 0.68rem;
+      font-size: var(--txt-2xs);
       color: var(--neutro-claro);
       font-weight: 700;
     }
@@ -281,7 +281,7 @@ import { duracionTexto } from '../datos/formato';
       color: var(--secundario);
       display: grid;
       place-items: center;
-      box-shadow: 0 2px 8px rgba(22, 48, 47, 0.14);
+      box-shadow: var(--sombra-media);
       transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
     }
     .izquierda {
@@ -291,7 +291,7 @@ import { duracionTexto } from '../datos/formato';
       right: 0.3rem;
     }
     .flecha:hover:not(:disabled) {
-      background: var(--primario);
+      background: var(--primario-fuerte);
       border-color: var(--primario);
       color: var(--blanco);
     }

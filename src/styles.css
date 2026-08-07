@@ -1,27 +1,72 @@
 /* ==========================================================================
-   Tokens de diseño — paleta Tania Iznardo Osteopatía
+   Sistema de diseño — Tania Iznardo Osteopatía
+
+   Tres familias de tokens y nada más: color, tipografía y forma. Todo lo que
+   se pinta en la app sale de acá, así que redefinirlos (ver la marca del
+   anfitrión, al final) reviste el reservador entero sin tocar componentes.
    ========================================================================== */
 :root {
+  /* ---- Color ------------------------------------------------------------
+     El teal de marca (#34817e) sobre blanco da 4,45:1 — se queda corto para
+     texto (AA pide 4,5). Por eso la rampa tiene dos niveles: el de marca se
+     usa para anillos, tintes, íconos y bordes, y el "fuerte" (5,99:1) para
+     todo lo que sea texto o relleno de botón. */
   --primario: #34817e;
-  --primario-oscuro: #2a6b68;
+  --primario-fuerte: #2a6b68;
+  --primario-oscuro: #205250;
   --primario-suave: #e7f1f0;
+  --primario-tenue: #f3f8f8;
   --secundario: #16302f;
   --terciario: #f4b740;
   --terciario-suave: #fdf3dc;
   --terciario-oscuro: #8a6210;
   --neutro: #5c6b70;
+  --neutro-oscuro: #4a585c;
   --neutro-claro: #93a1a5;
   --borde: #dee6e6;
+  --borde-suave: #e9efef;
+  --peligro: #b3392f;
+  --peligro-suave: rgba(179, 57, 47, 0.08);
   /* Ni el fondo ni las tarjetas son blanco puro: con tanta superficie clara en
      pantalla el brillo cansa. Se baja apenas y se mantiene el tinte verdoso de
      la paleta, dejando aire suficiente entre la página y las tarjetas. */
   --fondo: #eff4f4;
   --blanco: #fafcfc;
 
-  --radio: 12px;
-  --radio-chico: 8px;
-  --sombra: 0 2px 10px rgba(22, 48, 47, 0.06);
+  /* ---- Tipografía -------------------------------------------------------
+     Dos familias con roles separados: la serif titula (es la que le da el aire
+     de consultorio y no de app) y la grotesca sostiene toda la interfaz, que
+     se lee en tamaños chicos y necesita altura de x generosa. */
   --fuente: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --fuente-titulo: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+
+  /* Escala de 8 pasos. Antes había 36 tamaños sueltos: la mitad del ruido
+     visual venía de ahí. */
+  --txt-2xs: 0.7rem;
+  --txt-xs: 0.78rem;
+  --txt-sm: 0.86rem;
+  --txt-base: 0.95rem;
+  --txt-md: 1.05rem;
+  --txt-lg: 1.3rem;
+  --txt-xl: 1.75rem;
+  --txt-2xl: 2.15rem;
+
+  /* La serif de titular tiene la x mucho más baja que la grotesca: al mismo
+     tamaño nominal se ve ~15% más chica. Este factor la compensa. */
+  --display-ajuste: 1.18;
+
+  /* ---- Forma ------------------------------------------------------------
+     Dos radios y tres sombras. Las tarjetas se apoyan en el borde, no en la
+     sombra: apilar borde + sombra en cada nivel era lo que ensuciaba. */
+  --radio-chico: 10px;
+  --radio: 14px;
+  --radio-grande: 20px;
+
+  --sombra: 0 1px 2px rgba(22, 48, 47, 0.04);
+  --sombra-media: 0 6px 20px rgba(22, 48, 47, 0.07);
+  --sombra-alta: 0 20px 48px rgba(22, 48, 47, 0.16);
+
+  --transicion: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -43,11 +88,21 @@ body {
   font-family: var(--fuente);
   background: var(--fondo);
   color: var(--secundario);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: var(--txt-base);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
+img {
+  max-width: 100%;
+}
+
+/* ---- Titulares --------------------------------------------------------
+   Solo el h1 va en serif por defecto: es el ancla editorial de cada pantalla.
+   Los h2/h3 que también la merecen la piden con `.display`; el resto son
+   etiquetas de sección y se leen mejor en grotesca. */
 h1,
 h2,
 h3 {
@@ -55,15 +110,32 @@ h3 {
   margin: 0;
 }
 
+h1,
+.display {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
 h1 {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: calc(var(--txt-xl) * var(--display-ajuste));
+}
+
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font-family: inherit;
   font-size: inherit;
 }
@@ -73,7 +145,16 @@ button {
 }
 
 a {
-  color: var(--primario);
+  color: var(--primario-fuerte);
+}
+
+/* ---- Foco visible -----------------------------------------------------
+   Buena parte de los controles son `background:none; border:none`, así que sin
+   esto navegar con teclado es a ciegas. Va en :where() para no ganarle
+   especificidad a nadie, y solo con :focus-visible: el mouse no lo dispara. */
+:where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--primario-fuerte);
+  outline-offset: 2px;
 }
 
 /* Botones compartidos */
@@ -82,42 +163,56 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.5rem;
+  padding: 0.7rem 1.5rem;
   border-radius: var(--radio-chico);
-  font-weight: 700;
-  font-size: 0.95rem;
+  font-weight: 600;
+  font-size: var(--txt-sm);
+  letter-spacing: 0.01em;
   border: 1.5px solid transparent;
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    background var(--transicion),
+    color var(--transicion),
+    border-color var(--transicion),
+    box-shadow var(--transicion);
 }
 
 .btn-primario {
-  background: var(--primario);
+  background: var(--primario-fuerte);
   color: var(--blanco);
+  box-shadow: var(--sombra);
 }
 
 .btn-primario:hover:not(:disabled) {
   background: var(--primario-oscuro);
+  box-shadow: var(--sombra-media);
 }
 
-.btn-primario:disabled {
-  background: var(--neutro-claro);
+/*
+ * Deshabilitado gris sobre gris (2,6:1) dejaba el rótulo del CTA prácticamente
+ * ilegible justo cuando hace falta leerlo para saber qué falta completar.
+ * Ahora es una superficie apagada con texto legible (5,6:1).
+ */
+.btn-primario:disabled,
+.btn:disabled {
+  background: var(--borde);
+  color: var(--neutro-oscuro);
+  border-color: transparent;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .btn-borde {
   background: var(--blanco);
-  color: var(--primario);
+  color: var(--primario-fuerte);
+  border-color: var(--borde);
+}
+
+.btn-borde:hover:not(:disabled) {
+  background: var(--primario-tenue);
   border-color: var(--primario);
 }
 
-.btn-borde:hover {
-  background: var(--primario-suave);
-}
-
-/* Tarjeta base */
+/* Tarjeta base: el borde define el plano, la sombra apenas lo despega. */
 .tarjeta {
   background: var(--blanco);
   border: 1px solid var(--borde);
@@ -129,28 +224,25 @@ a {
 .contenedor {
   max-width: 1160px;
   margin: 0 auto;
-  padding: 0 1.5rem 3rem;
+  padding: 0 1.5rem 3.5rem;
 }
 
 @media (max-width: 720px) {
-  .contenedor {
-    padding: 0 1rem 9rem; /* deja lugar a la barra "Tu reserva" fija */
+  /* La escala baja un escalón entera en vez de parchear tamaño por tamaño. */
+  :root {
+    --txt-lg: 1.15rem;
+    --txt-xl: 1.45rem;
+    --txt-2xl: 1.7rem;
   }
 
-  /* Los títulos de servicio son largos: a 1.75rem se comen media pantalla
-     antes de que el paciente vea nada accionable. */
-  h1 {
-    font-size: 1.35rem;
-    line-height: 1.25;
-  }
-  h2 {
-    font-size: 1.1rem;
+  .contenedor {
+    padding: 0 1rem 9rem; /* deja lugar a la barra "Tu reserva" fija */
   }
 
   /* Blanco táctil mínimo: en el celular todo se toca con el dedo, no con
      un puntero de un pixel. */
   .btn {
-    min-height: 44px;
+    min-height: 46px;
   }
 }
 
@@ -189,12 +281,16 @@ a {
    ========================================================================== */
 body.marca-anfitriona {
   --primario: #7d9382;
-  --primario-oscuro: #5c7365;
+  --primario-fuerte: #5f7767;
+  --primario-oscuro: #47594e;
   --primario-suave: #eef1ec;
+  --primario-tenue: #f7f9f5;
   --secundario: #2c3a33;
   --neutro: #6c7a71;
+  --neutro-oscuro: #57655c;
   --neutro-claro: #9aa79f;
   --borde: #e6ded1;
+  --borde-suave: #efe9df;
   --fondo: #f6f2ea;
   --blanco: #fffdf9;
 }

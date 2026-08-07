@@ -102,9 +102,25 @@ const MAX_IMAGENES = 3;
                 >
                   <span class="grupo-titulo">
                     <b>{{ g.nombre }}</b>
-                    <i>· {{ g.tagline }}</i>
+                    <i>{{ g.tagline }}</i>
                   </span>
-                  <span class="grupo-signo">{{ abierto() === g.nombre ? '−' : '+' }}</span>
+                  <!-- Galón que gira: el "+/−" en texto traía su propio
+                       interlineado y nunca quedaba centrado en el renglón. -->
+                  <span
+                    class="grupo-signo"
+                    [class.abierto]="abierto() === g.nombre"
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
+                      <path
+                        d="m4 6 4 4 4-4"
+                        stroke="currentColor"
+                        stroke-width="1.9"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
                 </button>
 
                 @if (abierto() === g.nombre) {
@@ -182,17 +198,23 @@ const MAX_IMAGENES = 3;
       padding: 1.1rem 1.25rem 0.75rem;
     }
     .profes-cabecera {
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.85rem;
     }
+    /* Versalitas: es el rótulo de una franja opcional, no un título de página.
+       Así deja de pelear jerarquía con "Elegí tu servicio". */
     .profes-titulo {
-      font-size: 0.95rem;
       margin: 0;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--neutro);
     }
     .profes-bajada {
-      margin: 0.25rem 0 0;
+      margin: 0.35rem 0 0;
       color: var(--neutro);
-      font-size: 0.82rem;
-      line-height: 1.45;
+      font-size: var(--txt-sm);
+      line-height: 1.55;
     }
 
     /* Filtro por profesional (globos verticales) */
@@ -201,8 +223,17 @@ const MAX_IMAGENES = 3;
       align-items: flex-start;
       gap: 1.1rem;
       overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--borde) transparent;
       /* Aire arriba y abajo: si no, el scroll recorta el anillo del activo. */
       padding: 0.5rem 0;
+    }
+    .filtro-profes::-webkit-scrollbar {
+      height: 6px;
+    }
+    .filtro-profes::-webkit-scrollbar-thumb {
+      background: var(--borde);
+      border-radius: 999px;
     }
     .globo-caja {
       position: relative;
@@ -222,14 +253,14 @@ const MAX_IMAGENES = 3;
       border-radius: 50%;
       border: 1.5px solid var(--primario);
       background: var(--blanco);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       padding: 0;
       line-height: 0;
     }
     .quitar-filtro:hover {
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
     }
     .globo-profe {
@@ -248,7 +279,7 @@ const MAX_IMAGENES = 3;
       border-radius: 50%;
       overflow: hidden;
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       flex-shrink: 0;
@@ -261,9 +292,10 @@ const MAX_IMAGENES = 3;
       display: block;
     }
     .iniciales {
-      font-weight: 800;
-      font-size: 0.9rem;
-      letter-spacing: 0.02em;
+      font-family: var(--fuente-titulo);
+      font-weight: 600;
+      font-size: var(--txt-md);
+      letter-spacing: 0.04em;
     }
     .globo-profe:hover .avatar {
       box-shadow:
@@ -277,24 +309,30 @@ const MAX_IMAGENES = 3;
         0 0 0 5px var(--primario);
     }
     .globo-nombre {
-      font-size: 0.72rem;
-      font-weight: 700;
+      font-size: var(--txt-2xs);
+      font-weight: 600;
       color: var(--secundario);
       text-align: center;
-      line-height: 1.25;
+      line-height: 1.3;
       /* Dos líneas fijas: así las píldoras de abajo quedan a la misma altura. */
-      min-height: 2.5em;
+      min-height: 2.6em;
     }
+    /* Ocupación: rótulo, no etiqueta de color. Sin relleno se aliviana la fila
+       entera, que antes eran seis manchas verdes en línea. */
     .globo-profesion {
-      background: var(--primario-suave);
-      color: var(--primario);
-      border-radius: 999px;
-      padding: 0.12rem 0.55rem;
-      font-size: 0.62rem;
-      font-weight: 700;
+      color: var(--neutro);
+      padding: 0;
+      font-size: var(--txt-2xs);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       line-height: 1.3;
       text-align: center;
       max-width: 100%;
+      transition: color var(--transicion);
+    }
+    .globo-profe.activo .globo-profesion {
+      color: var(--primario-fuerte);
     }
 
     .disposicion {
@@ -307,38 +345,58 @@ const MAX_IMAGENES = 3;
 
     /* Lateral: título + navegador de categorías (no filtra, solo lleva al grupo) */
     .lateral h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
+    /*
+     * Índice tipo sumario: un riel fino a la izquierda en vez de un subrayado
+     * debajo de cada ítem. Seis subrayados apilados leían como seis botones;
+     * el riel los agrupa en una lista y marca dónde está parado el usuario.
+     */
     .categorias {
       display: flex;
       flex-direction: column;
+      border-left: 1px solid var(--borde);
     }
     .categoria {
+      position: relative;
       text-align: left;
       background: none;
       border: none;
-      border-bottom: 1px solid var(--borde);
-      padding: 0.8rem 0.6rem;
+      padding: 0.6rem 0.6rem 0.6rem 1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.1rem;
+      gap: 0.05rem;
+    }
+    /* El trazo del activo se pinta encima del borde del contenedor */
+    .categoria::before {
+      content: '';
+      position: absolute;
+      left: -1px;
+      top: 0.3rem;
+      bottom: 0.3rem;
+      width: 2px;
+      border-radius: 2px;
+      background: var(--primario);
+      opacity: 0;
+      transition: opacity var(--transicion);
+    }
+    .categoria.activa::before {
+      opacity: 1;
     }
     .categoria-nombre {
-      font-weight: 700;
-      font-size: 0.88rem;
+      font-weight: 600;
+      font-size: var(--txt-sm);
       color: var(--secundario);
+      transition: color var(--transicion);
     }
     .categoria-tagline {
-      font-size: 0.78rem;
-      font-style: italic;
-      color: var(--neutro);
+      font-size: var(--txt-xs);
+      color: var(--neutro-claro);
+      line-height: 1.4;
     }
-    .categoria:hover .categoria-nombre {
-      color: var(--primario);
-    }
+    .categoria:hover .categoria-nombre,
     .categoria.activa .categoria-nombre {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
 
     /* Grupos colapsables: solo uno abierto a la vez, todos cerrados al entrar */
@@ -358,34 +416,54 @@ const MAX_IMAGENES = 3;
       gap: 1rem;
       background: var(--blanco);
       border: 1px solid var(--borde);
-      border-radius: var(--radio-chico);
-      padding: 0.85rem 1.25rem;
+      border-radius: var(--radio);
+      padding: 0.95rem 1.25rem;
       text-align: left;
+      transition:
+        border-color var(--transicion),
+        box-shadow var(--transicion);
     }
     .grupo-cabecera:hover {
       border-color: var(--primario);
+      box-shadow: var(--sombra-media);
+    }
+    /* Nombre y bajada apilados: en una sola línea el tagline en cursiva
+       peleaba con el nombre por el mismo renglón. */
+    .grupo-titulo {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
     }
     .grupo-titulo b {
-      font-size: 0.95rem;
+      font-size: var(--txt-md);
+      font-weight: 600;
     }
     .grupo-titulo i {
       color: var(--neutro);
-      font-size: 0.85rem;
-      margin-left: 0.25rem;
+      font-size: var(--txt-xs);
+      font-style: normal;
     }
     .grupo-signo {
-      color: var(--primario);
-      font-size: 1.35rem;
-      font-weight: 700;
-      line-height: 1;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primario-suave);
+      color: var(--primario-fuerte);
+      display: grid;
+      place-items: center;
       flex-shrink: 0;
+      transition: transform var(--transicion);
+    }
+    .grupo-signo.abierto {
+      transform: rotate(180deg);
     }
     .grupo-cuerpo {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
+      gap: 1rem;
       align-items: start;
-      padding: 1.25rem 0.25rem;
+      padding: 1rem 0.25rem 1.25rem;
     }
 
     /* Tarjeta de servicio */
@@ -394,10 +472,17 @@ const MAX_IMAGENES = 3;
       border: 1px solid var(--borde);
       border-radius: var(--radio);
       box-shadow: var(--sombra);
-      padding: 1.25rem;
+      padding: 1.35rem;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      gap: 0.7rem;
+      transition:
+        border-color var(--transicion),
+        box-shadow var(--transicion);
+    }
+    .servicio:hover {
+      border-color: var(--primario);
+      box-shadow: var(--sombra-media);
     }
     .servicio-cabecera {
       display: flex;
@@ -406,55 +491,76 @@ const MAX_IMAGENES = 3;
       gap: 0.6rem;
     }
     .servicio h3 {
-      font-size: 1rem;
+      font-size: var(--txt-md);
+      font-weight: 600;
       line-height: 1.3;
     }
     .badge {
       background: var(--terciario-suave);
       color: var(--terciario-oscuro);
-      font-size: 0.7rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       border-radius: 999px;
-      padding: 0.2rem 0.6rem;
+      padding: 0.25rem 0.65rem;
       white-space: nowrap;
       flex-shrink: 0;
     }
+    /* Duración y precio como ficha técnica: versalitas para la duración y el
+       precio con la voz de la marca, separados por un punto medio. */
     .meta {
       display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.85rem;
+      align-items: baseline;
+      gap: 0.6rem;
+      font-size: var(--txt-xs);
       color: var(--neutro);
     }
+    .meta > span::after {
+      content: '·';
+      margin-left: 0.6rem;
+      color: var(--neutro-claro);
+    }
     .precio {
-      color: var(--primario);
-      font-size: 1rem;
+      color: var(--primario-fuerte);
+      font-size: var(--txt-md);
+      font-weight: 600;
     }
     .fotos {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
+    /* Se solapan apenas, como una pila de referencias: ocupan menos ancho y
+       se leen como un grupo y no como tres botones sueltos. */
     .foto {
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: var(--fondo);
       object-fit: cover;
       display: block;
       flex-shrink: 0;
+      border: 2px solid var(--blanco);
+      box-shadow: 0 0 0 1px var(--borde);
+    }
+    .fotos .foto + .foto {
+      margin-left: -0.9rem;
     }
     .descripcion {
       margin: 0;
       color: var(--neutro);
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
+      line-height: 1.6;
     }
     .detalle {
       margin: 0;
-      background: var(--primario-suave);
-      border-radius: var(--radio-chico);
-      padding: 0.65rem 0.8rem;
+      background: var(--primario-tenue);
+      border-left: 2px solid var(--primario);
+      border-radius: 0 var(--radio-chico) var(--radio-chico) 0;
+      padding: 0.7rem 0.9rem;
       color: var(--secundario);
-      font-size: 0.82rem;
+      font-size: var(--txt-sm);
+      line-height: 1.6;
     }
     .servicio-pie {
       display: flex;
@@ -463,13 +569,25 @@ const MAX_IMAGENES = 3;
       gap: 0.75rem;
       margin-top: auto;
     }
+    /* Acción secundaria: subrayado fino en vez de negrita, para que no compita
+       con el botón de reservar que está al lado. */
     .mas-info {
       background: none;
       border: none;
       padding: 0;
-      color: var(--primario);
-      font-weight: 700;
-      font-size: 0.85rem;
+      color: var(--neutro);
+      font-weight: 600;
+      font-size: var(--txt-xs);
+      text-decoration: underline;
+      text-decoration-color: var(--borde);
+      text-underline-offset: 4px;
+      transition:
+        color var(--transicion),
+        text-decoration-color var(--transicion);
+    }
+    .mas-info:hover {
+      color: var(--primario-fuerte);
+      text-decoration-color: var(--primario);
     }
 
     @media (max-width: 900px) {
@@ -484,27 +602,52 @@ const MAX_IMAGENES = 3;
       .lateral {
         margin-bottom: 1rem;
       }
+      /* En mobile el índice se vuelve una fila de píldoras: el riel vertical
+         no tiene sentido acostado, así que se apaga. */
       .categorias {
         flex-direction: row;
         overflow-x: auto;
         gap: 0.5rem;
         padding-bottom: 0.5rem;
+        border-left: none;
+        scrollbar-width: none;
+      }
+      .categorias::-webkit-scrollbar {
+        display: none;
       }
       .categoria {
         flex-shrink: 0;
         border: 1px solid var(--borde);
         background: var(--blanco);
         border-radius: 999px;
-        padding: 0.45rem 1rem;
+        padding: 0.5rem 1.05rem;
+        min-height: 40px;
+        justify-content: center;
+        transition:
+          border-color var(--transicion),
+          background var(--transicion);
+      }
+      .categoria::before {
+        display: none;
       }
       .categoria-tagline {
         display: none;
       }
       .categoria.activa {
         border-color: var(--primario);
+        background: var(--primario-suave);
       }
       .panel-profes {
-        padding: 0.95rem 1rem 0.55rem;
+        padding: 0.9rem 1rem 0.5rem;
+      }
+      .profes-cabecera {
+        margin-bottom: 0.65rem;
+      }
+      .profes-bajada {
+        margin-top: 0.25rem;
+      }
+      .filtro-profes {
+        gap: 0.9rem;
       }
       /* Objetivos táctiles: con el pulgar, 20px de cruz no se aciertan. */
       .quitar-filtro {

@@ -54,33 +54,37 @@ import { inicialesDe } from '../datos/profesionales';
       object-fit: cover;
       display: block;
     }
+    /* Monograma en la serif: es la firma del profesional, igual que el del
+       consultorio en la cabecera. */
     .iniciales {
-      font-weight: 800;
-      font-size: 1rem;
-      color: var(--primario);
-      letter-spacing: 0.02em;
+      font-family: var(--fuente-titulo);
+      font-weight: 600;
+      font-size: calc(var(--txt-md) * var(--display-ajuste));
+      color: var(--primario-fuerte);
+      letter-spacing: 0.04em;
     }
     .ficha.grande .iniciales {
-      font-size: 1.3rem;
+      font-size: calc(var(--txt-lg) * var(--display-ajuste));
     }
     .nombre {
-      font-size: 0.82rem;
-      font-weight: 700;
+      font-size: var(--txt-sm);
+      font-weight: 600;
       color: var(--secundario);
       text-align: center;
       line-height: 1.25;
     }
     .ficha.grande .nombre {
-      font-size: 0.92rem;
+      font-size: var(--txt-base);
     }
     /* Globo con la profesión, como en la lista de profesionales. */
+    /* Ocupación como rótulo, sin píldora: en una grilla de seis fichas, seis
+       cápsulas con borde eran seis cajas más que mirar. */
     .globo {
-      background: var(--fondo);
-      border: 1px solid var(--borde);
-      border-radius: 999px;
-      padding: 0.15rem 0.6rem;
-      font-size: 0.7rem;
+      padding: 0;
+      font-size: var(--txt-2xs);
       font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       color: var(--neutro);
       white-space: nowrap;
       max-width: 100%;
@@ -88,7 +92,7 @@ import { inicialesDe } from '../datos/profesionales';
       text-overflow: ellipsis;
     }
     .matricula {
-      font-size: 0.7rem;
+      font-size: var(--txt-2xs);
       color: var(--neutro-claro);
     }
   `,

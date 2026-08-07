@@ -484,7 +484,7 @@ const ESPERA_EXITO_MS = 1500;
       width: 76px;
       height: 76px;
       border-radius: 50%;
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
       display: grid;
       place-items: center;
@@ -498,11 +498,11 @@ const ESPERA_EXITO_MS = 1500;
       animation: exito-traza 0.3s 0.1s ease-out forwards;
     }
     .exito strong {
-      font-size: 1.15rem;
+      font-size: var(--txt-md);
       color: var(--secundario);
     }
     .exito span {
-      font-size: 0.88rem;
+      font-size: var(--txt-sm);
       color: var(--neutro);
     }
     @keyframes exito-entra {
@@ -556,9 +556,7 @@ const ESPERA_EXITO_MS = 1500;
       width: min(430px, 100%);
       background: var(--blanco);
       border-radius: var(--radio);
-      box-shadow:
-        0 28px 70px rgba(22, 48, 47, 0.35),
-        0 4px 16px rgba(22, 48, 47, 0.12);
+      box-shadow: var(--sombra-alta);
       padding: 0 1.75rem 1.2rem;
       overflow: hidden;
       animation: subir 0.24s ease;
@@ -596,8 +594,8 @@ const ESPERA_EXITO_MS = 1500;
     .hero {
       position: relative;
       margin: 0 -1.75rem 1.75rem;
-      height: 64px;
-      background: linear-gradient(120deg, var(--primario), var(--terciario));
+      height: 68px;
+      background: linear-gradient(125deg, var(--secundario), var(--primario-fuerte) 65%, var(--primario));
       overflow: visible;
     }
     .hero-circulo {
@@ -627,7 +625,7 @@ const ESPERA_EXITO_MS = 1500;
       height: 48px;
       border-radius: 50%;
       background: var(--blanco);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       box-shadow:
@@ -639,13 +637,16 @@ const ESPERA_EXITO_MS = 1500;
       margin-bottom: 0.95rem;
     }
     .cabecera h2 {
-      font-size: 1.2rem;
-      line-height: 1.3;
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-lg) * var(--display-ajuste));
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1.2;
     }
     .bajada {
       margin: 0.35rem 0 0;
       color: var(--neutro);
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
     }
 
     /* Selector login / registro */
@@ -663,7 +664,7 @@ const ESPERA_EXITO_MS = 1500;
       border: none;
       border-radius: 999px;
       padding: 0.5rem 0.5rem;
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
       font-weight: 700;
       color: var(--neutro);
       transition:
@@ -675,8 +676,8 @@ const ESPERA_EXITO_MS = 1500;
     }
     .opcion.activa {
       background: var(--blanco);
-      color: var(--primario);
-      box-shadow: 0 1px 4px rgba(22, 48, 47, 0.1);
+      color: var(--primario-fuerte);
+      box-shadow: var(--sombra);
     }
 
     form {
@@ -695,9 +696,13 @@ const ESPERA_EXITO_MS = 1500;
       gap: 0.3rem;
       min-width: 0;
     }
+    /* Mismo tratamiento que las etiquetas del paso de datos: los dos son el
+       mismo formulario para el paciente, aunque vivan en pantallas distintas. */
     .etiqueta {
-      font-size: 0.78rem;
-      font-weight: 700;
+      font-size: var(--txt-xs);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--neutro-oscuro);
     }
     /* Caja del input: icono a la izquierda, acciones a la derecha */
     .control {
@@ -750,10 +755,10 @@ const ESPERA_EXITO_MS = 1500;
       flex-shrink: 0;
     }
     .control:focus-within .icono {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .prefijo {
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
       font-weight: 700;
       color: var(--neutro);
       flex-shrink: 0;
@@ -765,7 +770,7 @@ const ESPERA_EXITO_MS = 1500;
       outline: none;
       background: none;
       padding: 0.62rem 0;
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
       color: var(--secundario);
     }
     input::placeholder {
@@ -782,14 +787,14 @@ const ESPERA_EXITO_MS = 1500;
       border-radius: 50%;
     }
     .ojo:hover {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .tilde {
       flex-shrink: 0;
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
       display: grid;
       place-items: center;
@@ -818,7 +823,7 @@ const ESPERA_EXITO_MS = 1500;
       background: var(--primario);
     }
     .nivel {
-      font-size: 0.7rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
       color: var(--neutro);
       min-width: 62px;
@@ -827,7 +832,7 @@ const ESPERA_EXITO_MS = 1500;
 
     .error {
       color: #b3392f;
-      font-size: 0.74rem;
+      font-size: var(--txt-xs);
       font-weight: 600;
     }
     .error-caja {
@@ -836,7 +841,7 @@ const ESPERA_EXITO_MS = 1500;
       color: #b3392f;
       border-radius: var(--radio-chico);
       padding: 0.55rem 0.75rem;
-      font-size: 0.8rem;
+      font-size: var(--txt-xs);
       font-weight: 600;
     }
     .olvide {
@@ -844,8 +849,8 @@ const ESPERA_EXITO_MS = 1500;
       background: none;
       border: none;
       padding: 0;
-      color: var(--primario);
-      font-size: 0.78rem;
+      color: var(--primario-fuerte);
+      font-size: var(--txt-xs);
       font-weight: 700;
     }
     .olvide:hover {
@@ -857,7 +862,7 @@ const ESPERA_EXITO_MS = 1500;
       color: var(--terciario-oscuro);
       border-radius: var(--radio-chico);
       padding: 0.55rem 0.75rem;
-      font-size: 0.78rem;
+      font-size: var(--txt-xs);
       font-weight: 600;
     }
     .enviar {
@@ -872,7 +877,7 @@ const ESPERA_EXITO_MS = 1500;
     .aviso {
       margin: 0.85rem 0 0;
       text-align: center;
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       color: var(--neutro-claro);
     }
 
@@ -926,7 +931,7 @@ const ESPERA_EXITO_MS = 1500;
         margin-bottom: 0.7rem;
       }
       .cabecera h2 {
-        font-size: 1.05rem;
+        font-size: var(--txt-md);
       }
       .selector {
         margin-bottom: 0.75rem;

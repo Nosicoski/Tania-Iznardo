@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReservaStore } from '../servicios/reserva-store';
+import { Negocio } from '../servicios/negocio';
 import { Profesional, Servicio } from '../modelos';
 import { aHora, duracionTexto, fechaCorta, fechaLargaCompleta, precioARS } from '../datos/formato';
 
@@ -54,6 +55,23 @@ interface Linea {
             </div>
           }
         </div>
+        <!-- Dónde es el turno. Es el dato que más se busca después del horario
+             y, embebido, es el del negocio anfitrión, no el del consultorio. -->
+        <div class="donde">
+          <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden="true">
+            <path
+              d="M10 18s6-5.686 6-10A6 6 0 1 0 4 8c0 4.314 6 10 6 10Z"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+            <circle cx="10" cy="8" r="2.1" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          <span>
+            {{ negocio().direccion }}
+            <i>{{ negocio().ciudad }}</i>
+          </span>
+        </div>
+
         <div class="total">
           <span>Total</span>
           <b>{{ precio(store.total()) }}</b>
@@ -115,6 +133,21 @@ interface Linea {
               <span class="valor">{{ precio(l.servicio.precio) }}</span>
             </div>
           }
+          <div class="donde">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" aria-hidden="true">
+              <path
+                d="M10 18s6-5.686 6-10A6 6 0 1 0 4 8c0 4.314 6 10 6 10Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
+              <circle cx="10" cy="8" r="2.1" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+            <span>
+              {{ negocio().direccion }}
+              <i>{{ negocio().ciudad }}</i>
+            </span>
+          </div>
+
           <div class="fila">
             <span class="clave">Total · {{ duracion(store.duracionServicio()) }}</span>
             <span class="valor precio">{{ precio(store.total()) }}</span>
@@ -139,29 +172,39 @@ interface Linea {
     </div>
   `,
   styles: `
+    /* El alto extra que hacía falta lo trae ahora la dirección, así que el pie
+       vuelve a un aire normal en vez de estirarse con relleno vacío. */
     .panel {
-      padding: 1.25rem;
-      position: sticky;
-      top: 1rem;
+      padding: 1.35rem 1.35rem 1.5rem;
+      align-self: start;
     }
+    /* Rótulo en versalitas: es el encabezado de una ficha lateral, no un
+       titular. Así el día de la visita queda como la línea protagonista. */
     .titulo {
-      font-size: 1rem;
-      margin-bottom: 1rem;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--neutro);
+      margin-bottom: 0.6rem;
     }
     .vacio {
-      border: 1.5px dashed var(--borde);
+      border: 1px dashed var(--borde);
       border-radius: var(--radio-chico);
       padding: 1.25rem 1rem;
       text-align: center;
       color: var(--neutro);
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
+      line-height: 1.55;
       margin-bottom: 1rem;
     }
     /* Día de la visita: una sola vez arriba, con el día de la semana entero */
     .dia {
-      margin: 0 0 0.75rem;
-      font-size: 0.85rem;
+      margin: 0 0 0.85rem;
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-md) * var(--display-ajuste));
       font-weight: 600;
+      line-height: 1.2;
       color: var(--secundario);
     }
     .lineas {
@@ -171,13 +214,14 @@ interface Linea {
       margin-bottom: 0.9rem;
     }
     .servicio {
-      background: var(--primario-suave);
+      background: var(--primario-tenue);
+      border: 1px solid var(--borde-suave);
       border-radius: var(--radio-chico);
-      padding: 0.85rem 1rem;
+      padding: 0.9rem 1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.2rem;
-      font-size: 0.9rem;
+      gap: 0.25rem;
+      font-size: var(--txt-sm);
     }
     .servicio strong {
       line-height: 1.3;
@@ -188,7 +232,7 @@ interface Linea {
      */
     .servicio > span {
       color: var(--neutro);
-      font-size: 0.82rem;
+      font-size: var(--txt-sm);
     }
     .cuando {
       color: var(--secundario) !important;
@@ -207,17 +251,38 @@ interface Linea {
       display: block;
       color: var(--neutro);
       font-weight: 500;
-      font-size: 0.75rem;
+      font-size: var(--txt-xs);
     }
     .precio {
+      color: var(--primario-fuerte);
+      font-weight: 600;
+    }
+    /* Dirección: renglón de ficha, con el mismo ícono que el encabezado. */
+    .donde {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      padding: 0.15rem 0 0.2rem;
+      font-size: var(--txt-xs);
+      color: var(--secundario);
+      line-height: 1.45;
+    }
+    .donde svg {
       color: var(--primario);
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+    .donde i {
+      display: block;
+      font-style: normal;
+      color: var(--neutro);
     }
     .fila {
       display: flex;
       justify-content: space-between;
       gap: 1rem;
       padding: 0.45rem 0;
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
     }
     .clave {
       color: var(--neutro);
@@ -232,19 +297,25 @@ interface Linea {
       border-top: 1px solid var(--borde);
       margin-top: 0.6rem;
       padding-top: 0.8rem;
-      font-size: 0.95rem;
+      font-size: var(--txt-base);
     }
     .total b {
-      color: var(--primario);
+      color: var(--primario-fuerte);
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-md) * var(--display-ajuste));
+      font-weight: 600;
     }
+    /* Es un dato del turno ("no hace falta pagar online"), no una advertencia:
+       por eso va en gris y no en ámbar, que se lee como estado de error. */
     .nota {
       margin-top: 0.9rem;
-      background: var(--terciario-suave);
-      color: var(--terciario-oscuro);
+      background: var(--fondo);
+      color: var(--neutro-oscuro);
       border-radius: var(--radio-chico);
-      padding: 0.6rem 0.75rem;
-      font-size: 0.8rem;
-      font-weight: 600;
+      padding: 0.65rem 0.8rem;
+      font-size: var(--txt-xs);
+      font-weight: 500;
+      line-height: 1.5;
     }
 
     /* Barra mobile */
@@ -264,7 +335,7 @@ interface Linea {
         z-index: 20;
         background: var(--blanco);
         border-top: 1px solid var(--borde);
-        box-shadow: 0 -4px 16px rgba(22, 48, 47, 0.08);
+        box-shadow: 0 -6px 22px rgba(22, 48, 47, 0.07);
         padding: 0.6rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
       }
       .barra-cabecera {
@@ -286,14 +357,14 @@ interface Linea {
         min-width: 0;
       }
       .barra-titulo {
-        font-size: 0.68rem;
+        font-size: var(--txt-2xs);
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--neutro);
       }
       .barra-detalle {
-        font-size: 0.85rem;
+        font-size: var(--txt-sm);
         color: var(--neutro);
         white-space: nowrap;
         overflow: hidden;
@@ -301,7 +372,7 @@ interface Linea {
       }
       .flecha {
         color: var(--neutro);
-        font-size: 0.7rem;
+        font-size: var(--txt-2xs);
         transition: transform 0.15s ease;
         flex-shrink: 0;
       }
@@ -319,7 +390,13 @@ interface Linea {
       .barra-cuerpo .pendiente,
       .barra-cuerpo .con {
         display: block;
-        font-size: 0.78rem;
+        font-size: var(--txt-xs);
+      }
+      /* La dirección va entre el servicio y el total, con un filete arriba:
+         separa "qué reservaste" de "cuánto y dónde". */
+      .barra-cuerpo .donde {
+        border-top: 1px solid var(--borde-suave);
+        padding: 0.55rem 0 0.15rem;
       }
       .barra-cuerpo .fila {
         align-items: flex-start;
@@ -339,7 +416,6 @@ interface Linea {
       }
       /* Visible desde el arranque, atenuado hasta que la reserva esté completa. */
       .barra-cta .btn:disabled {
-        opacity: 0.45;
         cursor: default;
       }
     }
@@ -347,6 +423,8 @@ interface Linea {
 })
 export class ResumenReserva {
   protected readonly store = inject(ReservaStore);
+  /** Dueño de la agenda: el consultorio, o el negocio que embebe el flujo. */
+  protected readonly negocio = inject(Negocio).datos;
   protected readonly abierta = signal(false);
 
   /** Con el turno resuelto manda el plan; si no, el servicio sin horario. */

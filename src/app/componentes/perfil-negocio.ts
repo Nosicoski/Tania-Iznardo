@@ -155,22 +155,26 @@ import { ModalProfesionales } from './modal-profesionales';
     .perfil-grid {
       max-width: 1160px;
       margin: 0 auto;
-      padding: 1.75rem 1.5rem;
+      padding: 1.5rem 1.5rem 1.75rem;
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
       grid-template-rows: auto auto;
       column-gap: 2rem;
-      row-gap: 1rem;
+      row-gap: 1.15rem;
       align-items: start;
     }
 
-    /* Izquierda: imagen + identidad */
+    /* Izquierda: imagen + identidad.
+       Sin aspect-ratio: la foto se estira a lo que mida el panel del mapa. Con
+       una proporción fija, la más alta de las dos definía la fila y el paso 1
+       empezaba recién a los 990px de scroll — o sea, después del pliegue. */
     .perfil-hero {
       grid-column: 1;
       grid-row: 1;
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 10;
+      align-self: stretch;
+      min-height: 230px;
       border-radius: var(--radio);
       overflow: hidden;
       background: linear-gradient(135deg, var(--primario-suave), var(--terciario-suave));
@@ -185,7 +189,7 @@ import { ModalProfesionales } from './modal-profesionales';
     }
     .perfil-hero-ph {
       color: var(--neutro);
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
       font-weight: 600;
     }
     .perfil-textos {
@@ -196,31 +200,38 @@ import { ModalProfesionales } from './modal-profesionales';
     .perfil-identidad {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
     }
+    /* Monograma: mismo peso y misma serif que el nombre, para que se lean como
+       una sola marca y no como un ícono pegado al lado de un texto. */
     .perfil-logo {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 46px;
+      height: 46px;
+      border-radius: var(--radio);
       background: var(--secundario);
       color: var(--blanco);
       display: grid;
       place-items: center;
-      font-weight: 800;
-      font-size: 1.1rem;
+      font-family: var(--fuente-titulo);
+      font-weight: 600;
+      font-size: var(--txt-md);
+      letter-spacing: 0.06em;
       flex-shrink: 0;
     }
     .perfil-nombre {
-      font-size: 1.4rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-lg) * var(--display-ajuste));
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1.15;
       color: var(--secundario);
     }
     .perfil-desc {
       margin: 0.85rem 0 0;
       color: var(--neutro);
-      font-size: 0.9rem;
-      max-width: 48ch;
+      font-size: var(--txt-sm);
+      line-height: 1.65;
+      max-width: 52ch;
     }
 
     /* Derecha: mapa + datos + profesional. Ocupa el alto de la imagen y el
@@ -235,12 +246,12 @@ import { ModalProfesionales } from './modal-profesionales';
       border: 1px solid var(--borde);
       border-radius: var(--radio);
       box-shadow: var(--sombra);
-      padding: 1.1rem;
+      padding: 1.15rem;
     }
     .perfil-mapa {
       position: relative;
       flex: 1;
-      min-height: 180px;
+      min-height: 150px;
       border-radius: var(--radio-chico);
       overflow: hidden;
       border: 1px solid var(--borde);
@@ -255,23 +266,30 @@ import { ModalProfesionales } from './modal-profesionales';
       border: 0;
       display: block;
     }
+    /* Filas separadas por una línea finísima en vez de por aire: ocupan menos
+       y se leen como una ficha de datos, que es lo que son. */
     .perfil-datos {
       list-style: none;
-      margin: 1.1rem 0 0;
+      margin: 1rem 0 0;
       padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
     }
     .perfil-datos li {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      font-size: 0.85rem;
+      gap: 0.65rem;
+      padding: 0.55rem 0;
+      font-size: var(--txt-sm);
       color: var(--secundario);
+      border-bottom: 1px solid var(--borde-suave);
+    }
+    .perfil-datos li:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
     }
     .perfil-datos svg {
-      color: var(--primario);
+      color: var(--primario-fuerte);
       flex-shrink: 0;
     }
     .perfil-link {
@@ -281,20 +299,21 @@ import { ModalProfesionales } from './modal-profesionales';
       color: var(--secundario);
       font-weight: 600;
       text-align: left;
+      transition: color var(--transicion);
     }
     .perfil-link:hover {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     /* Cuántos son, sin que el ítem crezca de alto */
     .perfil-cuenta {
       display: inline-block;
-      margin-left: 0.35rem;
+      margin-left: 0.4rem;
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       border-radius: 999px;
-      padding: 0 0.4rem;
-      font-size: 0.72rem;
-      font-weight: 800;
+      padding: 0 0.45rem;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
       vertical-align: 1px;
     }
 
@@ -304,19 +323,24 @@ import { ModalProfesionales } from './modal-profesionales';
       right: 1.25rem;
       bottom: 1.25rem;
       z-index: 30;
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
-      border: none;
-      background: #25d366;
+      /* Anillo del color del fondo: despega el botón sin tener que subirle la
+         sombra, que a este verde saturado lo hacía verse pegoteado. */
+      border: 3px solid var(--blanco);
+      background: #22c55e;
       color: #fff;
       display: grid;
       place-items: center;
-      box-shadow: 0 6px 18px rgba(37, 211, 100, 0.4);
-      transition: transform 0.15s ease;
+      box-shadow: 0 4px 16px rgba(22, 48, 47, 0.18);
+      transition:
+        transform var(--transicion),
+        box-shadow var(--transicion);
     }
     .wa-flotante:hover {
-      transform: scale(1.06);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(22, 48, 47, 0.22);
     }
 
     /* Apilado: cada bloque vuelve a ocupar su propia fila y el mapa fija alto. */
@@ -324,8 +348,8 @@ import { ModalProfesionales } from './modal-profesionales';
       .perfil-grid {
         grid-template-columns: 1fr;
         grid-template-rows: none;
-        gap: 1.25rem;
-        padding: 1.25rem 1rem;
+        gap: 1rem;
+        padding: 1.15rem 1rem 1.35rem;
       }
       .perfil-hero,
       .perfil-textos,
@@ -336,23 +360,53 @@ import { ModalProfesionales } from './modal-profesionales';
       .perfil-panel {
         align-self: auto;
       }
+      /* Apilado ya no hay nada a lo que igualar el alto: la foto vuelve a una
+         franja panorámica en vez de comerse media pantalla del celular. */
+      .perfil-hero {
+        min-height: 0;
+        aspect-ratio: 16 / 8;
+      }
       .perfil-mapa {
         flex: none;
-        height: 180px;
+        height: 150px;
       }
     }
+    /*
+     * En el celular todo el perfil está apilado, así que cada bloque suma
+     * scroll antes de que aparezca el catálogo, que es a lo que el paciente
+     * vino. Acá se le saca aire a todo sin esconder nada.
+     */
     @media (max-width: 720px) {
+      .perfil-hero {
+        aspect-ratio: 21 / 9;
+      }
+      .perfil-desc {
+        margin-top: 0.7rem;
+        line-height: 1.55;
+      }
+      .perfil-panel {
+        padding: 1rem;
+      }
+      .perfil-mapa {
+        height: 132px;
+      }
+      .perfil-datos {
+        margin-top: 0.85rem;
+      }
+      .perfil-datos li {
+        padding: 0.35rem 0;
+      }
       .wa-flotante {
         right: 1rem;
         bottom: 1rem;
-        width: 52px;
-        height: 52px;
+        width: 48px;
+        height: 48px;
       }
       /* "Ver horario", WhatsApp y demás enlaces del perfil medían 18px de
          alto: se tocan con el pulgar, necesitan blanco alrededor. */
       .perfil-link {
-        padding: 0.35rem 0;
-        min-height: 36px;
+        padding: 0.3rem 0;
+        min-height: 34px;
         display: inline-flex;
         align-items: center;
       }

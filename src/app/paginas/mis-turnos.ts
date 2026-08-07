@@ -246,8 +246,8 @@ function turnosPasadosMock(): TurnoGuardado[] {
       gap: 1.25rem;
       flex-wrap: wrap;
       margin-bottom: 2rem;
-      padding: 1.5rem 1.75rem;
-      border-left: 4px solid var(--primario);
+      padding: 1.6rem 1.75rem;
+      border-left: 3px solid var(--primario);
     }
     .saludo {
       display: flex;
@@ -259,39 +259,40 @@ function turnosPasadosMock(): TurnoGuardado[] {
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
       display: grid;
       place-items: center;
-      font-weight: 800;
-      font-size: 1.25rem;
+      font-family: var(--fuente-titulo);
+      font-weight: 600;
+      font-size: calc(var(--txt-lg) * var(--display-ajuste));
+      letter-spacing: 0.04em;
       flex-shrink: 0;
     }
     .saludo-textos {
       min-width: 0;
     }
     .encabezado h1 {
-      font-size: 1.6rem;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .proximo {
       margin: 0.3rem 0 0;
-      font-size: 0.92rem;
+      font-size: var(--txt-base);
       color: var(--secundario);
     }
     .proximo b {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .bajada {
       margin: 0.2rem 0 0;
       color: var(--neutro);
-      font-size: 0.82rem;
+      font-size: var(--txt-sm);
     }
 
     .titulo-seccion {
-      font-size: 0.78rem;
-      font-weight: 800;
-      letter-spacing: 0.12em;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--neutro);
       margin-bottom: 0.85rem;
@@ -317,7 +318,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
       left: 0;
       top: 0;
       bottom: 0;
-      width: 4px;
+      width: 3px;
       background: var(--primario);
     }
     .turno-fecha {
@@ -333,17 +334,18 @@ function turnosPasadosMock(): TurnoGuardado[] {
       align-self: flex-start;
     }
     .dia {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--primario);
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-xl) * var(--display-ajuste));
+      font-weight: 600;
+      color: var(--primario-fuerte);
       line-height: 1;
     }
     .mes {
-      font-size: 0.7rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .turno-cuerpo {
       flex: 1;
@@ -356,7 +358,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
       margin-bottom: 0.75rem;
     }
     .turno-cabecera h3 {
-      font-size: 1rem;
+      font-size: var(--txt-base);
       line-height: 1.3;
       flex: 1;
       min-width: 0;
@@ -382,7 +384,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
       border: 1px solid var(--borde);
       border-radius: 999px;
       padding: 0.2rem 0.7rem;
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
       color: var(--neutro);
       white-space: nowrap;
@@ -399,7 +401,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
       margin: 0;
     }
     dt {
-      font-size: 0.68rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -408,7 +410,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
     }
     dd {
       margin: 0;
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
       font-weight: 600;
       color: var(--secundario);
     }
@@ -419,7 +421,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
       margin-top: 1rem;
       border-top: 1px solid var(--borde);
       padding-top: 0.75rem;
-      font-size: 0.8rem;
+      font-size: var(--txt-xs);
       color: var(--neutro);
     }
     .duracion::after {
@@ -427,9 +429,9 @@ function turnosPasadosMock(): TurnoGuardado[] {
       margin-left: 0.5rem;
     }
     .precio {
-      color: var(--primario);
-      font-weight: 800;
-      font-size: 0.95rem;
+      color: var(--primario-fuerte);
+      font-weight: 700;
+      font-size: var(--txt-base);
     }
 
     /* Turnos pasados: griseados, con reagendar y detalle a mano */
@@ -455,7 +457,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
     }
     .linea-simple {
       margin: 0;
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
       color: var(--neutro);
     }
     .datos-pasado {
@@ -475,7 +477,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
     }
     .acciones-pasado .btn {
       padding: 0.5rem 1.1rem;
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
     }
 
     /* Vacío e invitación a iniciar sesión */
@@ -494,7 +496,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
       height: 56px;
       border-radius: 50%;
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       margin: 0 auto 1rem;
@@ -502,7 +504,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
     .vacio p,
     .invitacion p {
       color: var(--neutro);
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
       margin: 0.5rem 0 1.5rem;
     }
     .invitacion-acciones {
@@ -519,10 +521,10 @@ function turnosPasadosMock(): TurnoGuardado[] {
       .avatar {
         width: 52px;
         height: 52px;
-        font-size: 1.05rem;
+        font-size: var(--txt-md);
       }
       .encabezado h1 {
-        font-size: 1.3rem;
+        font-size: var(--txt-lg);
       }
       .turno {
         flex-direction: column;
@@ -536,7 +538,7 @@ function turnosPasadosMock(): TurnoGuardado[] {
         padding: 0.35rem 0.8rem;
       }
       .dia {
-        font-size: 1.15rem;
+        font-size: var(--txt-md);
       }
       .datos {
         grid-template-columns: 1fr;

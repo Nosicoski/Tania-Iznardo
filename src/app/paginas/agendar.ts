@@ -318,7 +318,7 @@ interface Chip {
       border: none;
       padding: 0;
       color: var(--neutro);
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
       font-weight: 600;
       display: inline-flex;
       align-items: center;
@@ -326,34 +326,38 @@ interface Chip {
       margin-bottom: 1.25rem;
     }
     .volver:hover {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .ayuda {
       color: var(--neutro);
       margin: 0.4rem 0 0;
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
     }
+    /* Las dos columnas cierran en la misma línea: el resumen manda arriba y el
+       panel de combinables se estira hasta el pie de la tarjeta del calendario. */
     .disposicion {
       display: grid;
       grid-template-columns: 1fr 300px;
       gap: 1.5rem;
-      align-items: start;
+      align-items: stretch;
       margin-top: 1.25rem;
     }
     .calendario {
       padding: 1.5rem;
     }
 
-    /* El servicio del turno */
+    /* El servicio del turno. Va como franja tenue con un trazo al costado, no
+       como caja de color: es contexto de lo que ya se eligió, no una alerta. */
     .tramo {
       display: flex;
       align-items: flex-start;
       gap: 0.7rem;
-      background: var(--primario-suave);
-      border: 1px solid var(--primario);
-      border-radius: var(--radio-chico);
-      padding: 0.75rem 0.85rem;
-      margin-bottom: 0.9rem;
+      background: var(--primario-tenue);
+      border: 1px solid var(--borde);
+      border-left: 2px solid var(--primario);
+      border-radius: 0 var(--radio-chico) var(--radio-chico) 0;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.1rem;
     }
     .tramo-cuerpo {
       flex: 1;
@@ -366,13 +370,13 @@ interface Chip {
       flex-wrap: wrap;
     }
     .tramo-titulo strong {
-      font-size: 0.88rem;
+      font-size: var(--txt-sm);
       line-height: 1.3;
     }
     .tramo-dur {
-      font-size: 0.75rem;
+      font-size: var(--txt-xs);
       font-weight: 700;
-      color: var(--primario);
+      color: var(--primario-fuerte);
       white-space: nowrap;
     }
 
@@ -408,7 +412,7 @@ interface Chip {
       border-radius: 50%;
       overflow: hidden;
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       flex-shrink: 0;
@@ -423,15 +427,15 @@ interface Chip {
       display: block;
     }
     .globo-iniciales {
-      font-size: 0.6rem;
-      font-weight: 800;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
     }
     .avatar-todos {
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
     }
     .globo-nombre {
-      font-size: 0.75rem;
+      font-size: var(--txt-xs);
       font-weight: 700;
       color: var(--secundario);
       white-space: nowrap;
@@ -440,7 +444,7 @@ interface Chip {
       color: var(--neutro);
       font-weight: 500;
       font-style: normal;
-      font-size: 0.7rem;
+      font-size: var(--txt-2xs);
     }
 
     /* Alto reservado para todo lo que cambia al elegir día, hora o
@@ -459,13 +463,13 @@ interface Chip {
     }
 
     .franja {
-      margin: 1.4rem 0 0.6rem;
-      font-size: 0.75rem;
-      font-weight: 800;
-      letter-spacing: 0.1em;
+      margin: 1.4rem 0 0.75rem;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
       color: var(--neutro);
-      border-top: 1px solid var(--borde);
+      border-top: 1px solid var(--borde-suave);
       padding-top: 1.1rem;
     }
     .horarios {
@@ -484,19 +488,39 @@ interface Chip {
       border: 1.5px solid var(--borde);
       background: var(--blanco);
       border-radius: 999px;
-      padding: 0.5rem 1.15rem;
-      font-weight: 700;
-      font-size: 0.9rem;
+      padding: 0.55rem 1.15rem;
+      font-weight: 600;
+      font-size: var(--txt-sm);
       color: var(--secundario);
+      transition:
+        border-color var(--transicion),
+        background var(--transicion),
+        color var(--transicion);
     }
     .hora:hover {
       border-color: var(--primario);
+      background: var(--primario-tenue);
     }
     /* Toda hora que ocupa el turno, no solo el inicio */
     .hora.elegida {
-      background: var(--primario);
-      border-color: var(--primario);
+      background: var(--primario-fuerte);
+      border-color: var(--primario-fuerte);
       color: var(--blanco);
+    }
+    /*
+     * Un servicio de 1h ocupa dos casilleros de 30'. Pintados los dos igual y
+     * con una cruz cada uno, parecían dos turnos distintos. La continuación va
+     * en tono suave y sin cruz: se lee "de 10:00 a 11:00", que es lo que es.
+     * Se resuelve encadenado — el casillero anterior está elegido → este es
+     * continuación — así sirve para servicios de cualquier duración.
+     */
+    .hora-caja:has(> .hora.elegida) + .hora-caja > .hora.elegida {
+      background: var(--primario-suave);
+      border-color: var(--primario);
+      color: var(--primario-fuerte);
+    }
+    .hora-caja:has(> .hora.elegida) + .hora-caja > .soltar {
+      display: none;
     }
     .soltar {
       position: absolute;
@@ -507,7 +531,7 @@ interface Chip {
       border-radius: 50%;
       border: 1.5px solid var(--primario);
       background: var(--blanco);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       padding: 0;
@@ -517,7 +541,7 @@ interface Chip {
         color 0.15s ease;
     }
     .soltar:hover {
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
     }
 
@@ -530,13 +554,13 @@ interface Chip {
     .sin-titulo {
       margin: 0;
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
       color: var(--secundario);
     }
     .sin-detalle {
       margin: 0.3rem 0 0;
       color: var(--neutro);
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
     }
     /* Combinables: en desktop, tarjeta bajo el resumen; en mobile, al pie del
        hueco reservado de horarios. En ninguno de los dos agregan scroll. */
@@ -545,13 +569,15 @@ interface Chip {
       flex-direction: column;
       gap: 1rem;
       min-width: 0;
-      /* El lateral entero acompaña el scroll (antes lo hacía solo el resumen). */
-      position: sticky;
-      top: 1rem;
     }
+    /* Rellena el alto que le sobra al lateral, para que termine a la misma
+       altura que la tarjeta del calendario. */
     .combinar-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       padding: 1.1rem 1.15rem 1.15rem;
-      border-left: 4px solid var(--terciario);
+      border-left: 3px solid var(--primario);
     }
     .combinar-mobile {
       display: none;
@@ -569,8 +595,8 @@ interface Chip {
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      background: var(--terciario-suave);
-      color: var(--terciario-oscuro);
+      background: var(--primario-suave);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
       flex-shrink: 0;
@@ -583,14 +609,14 @@ interface Chip {
       min-width: 0;
     }
     .combinar-copy b {
-      font-size: 0.84rem;
-      font-weight: 800;
+      font-size: var(--txt-sm);
+      font-weight: 600;
       color: var(--secundario);
       line-height: 1.3;
     }
     .combinar-copy i {
       font-style: normal;
-      font-size: 0.76rem;
+      font-size: var(--txt-xs);
       color: var(--neutro);
       line-height: 1.35;
     }
@@ -629,10 +655,10 @@ interface Chip {
       width: 54px;
       height: 54px;
       flex-shrink: 0;
-      border-radius: 10px;
+      border-radius: var(--radio-chico);
       overflow: hidden;
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       display: grid;
       place-items: center;
     }
@@ -643,8 +669,8 @@ interface Chip {
       display: block;
     }
     .combinable-inicial {
-      font-size: 1.15rem;
-      font-weight: 800;
+      font-size: var(--txt-md);
+      font-weight: 700;
     }
     .combinable-tilde {
       position: absolute;
@@ -661,7 +687,7 @@ interface Chip {
       min-width: 0;
     }
     .combinable-textos strong {
-      font-size: 0.82rem;
+      font-size: var(--txt-sm);
       line-height: 1.25;
       /* Dos líneas como máximo: los nombres largos no estiran la tarjeta. */
       display: -webkit-box;
@@ -673,13 +699,13 @@ interface Chip {
       display: flex;
       align-items: baseline;
       gap: 0.4rem;
-      font-size: 0.75rem;
+      font-size: var(--txt-xs);
       color: var(--neutro);
       white-space: nowrap;
     }
     .combinable-meta b {
-      color: var(--primario);
-      font-weight: 800;
+      color: var(--primario-fuerte);
+      font-weight: 700;
     }
     /* Ancho completo y en su propia fila: el botón cambia de texto al
        elegirlo y así nunca le roba lugar al nombre del servicio. */
@@ -692,10 +718,10 @@ interface Chip {
       gap: 0.35rem;
       border: 1.5px solid var(--primario);
       background: var(--blanco);
-      color: var(--primario);
+      color: var(--primario-fuerte);
       border-radius: 999px;
       padding: 0.42rem 0.85rem;
-      font-size: 0.78rem;
+      font-size: var(--txt-xs);
       font-weight: 700;
       transition:
         background 0.15s ease,
@@ -705,7 +731,7 @@ interface Chip {
       background: var(--primario-suave);
     }
     .combinable-btn.activo {
-      background: var(--primario);
+      background: var(--primario-fuerte);
       color: var(--blanco);
     }
     .combinable-btn.activo:hover {
@@ -713,7 +739,7 @@ interface Chip {
     }
     .combinable-cuando {
       margin: 0.55rem 0 0;
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       line-height: 1.35;
       color: var(--neutro);
       text-align: center;
@@ -724,7 +750,7 @@ interface Chip {
     .elegi-dia {
       color: var(--neutro);
       text-align: center;
-      font-size: 0.9rem;
+      font-size: var(--txt-sm);
       margin: 0;
       padding: 0 1rem;
     }
@@ -733,7 +759,6 @@ interface Chip {
       margin-top: 1.5rem;
     }
     .continuar:disabled {
-      opacity: 0.45;
       cursor: default;
     }
     /* Desde acá el resumen pasa a la barra desplegable de abajo. */
@@ -757,11 +782,25 @@ interface Chip {
       .calendario {
         padding: 1rem;
       }
-      /* Con la tarjeta más angosta los horarios ocupan más filas, así que el
-         hueco reservado tiene que ser más alto que en escritorio. Incluye el
-         renglón de "cuándo se agenda" del combinable. */
+      /*
+       * Cuatro columnas en vez de tres: a 86px mínimos solo entraban tres
+       * píldoras por fila y una tarde cargada se iba a una fila extra, con lo
+       * que el hueco reservado cambiaba de alto según el día. Un "15:30" mide
+       * ~53px, así que a 72px sigue sobrando lugar.
+       */
+      .horarios {
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+        gap: 0.5rem;
+      }
+      /*
+       * Piso para los estados vacíos ("elegí un día", "no quedan horarios"),
+       * que si no quedarían como una tarjeta a medio llenar. Acá no hace falta
+       * que cubra el estado más alto: en mobile el botón de continuar vive en
+       * la barra fija de abajo, así que el alto de este hueco no lo mueve. El
+       * que sí tiene que reservar de verdad es el de escritorio.
+       */
       .zona-horarios {
-        min-height: 444px;
+        min-height: 300px;
       }
       /* El dedo necesita más blanco que el puntero */
       .volver {

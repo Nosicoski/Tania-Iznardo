@@ -5,9 +5,9 @@ import { Component, input } from '@angular/core';
  * que muestran el stepper: sirve para ubicar al usuario en el recorrido.
  */
 const PASOS = [
-  { numero: 1, etiqueta: 'Elegir servicios' },
-  { numero: 2, etiqueta: 'Reserva' },
-  { numero: 3, etiqueta: 'Datos de contacto' },
+  { numero: 1, etiqueta: 'Servicio' },
+  { numero: 2, etiqueta: 'Día y horario' },
+  { numero: 3, etiqueta: 'Tus datos' },
 ];
 
 @Component({
@@ -44,63 +44,81 @@ const PASOS = [
     </nav>
   `,
   styles: `
+    /*
+     * Indicador de recorrido, no botonera: se lee de un vistazo y después
+     * desaparece. De ahí el tamaño chico, las versalitas y el trazo fino —
+     * antes competía en peso con el título de la pantalla.
+     */
     .stepper {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.6rem;
-      padding: 1.5rem 1rem;
+      gap: 0.75rem;
+      /* Aire suficiente abajo para que las mayúsculas de la serif del h1 que
+         viene después no queden pegadas a los círculos. */
+      padding: 1.75rem 1rem 1.5rem;
     }
     .paso {
       display: flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 0.5rem;
       color: var(--neutro-claro);
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: var(--txt-2xs);
+      font-weight: 700;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      transition: color var(--transicion);
     }
     .circulo {
-      width: 26px;
-      height: 26px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       border: 1.5px solid currentColor;
       display: grid;
       place-items: center;
-      font-size: 0.8rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
+      letter-spacing: 0;
       flex-shrink: 0;
+      transition:
+        background var(--transicion),
+        border-color var(--transicion),
+        color var(--transicion);
     }
+    /* Paso en curso: relleno pleno. Es el único punto de color de la fila. */
     .paso.activo {
       color: var(--secundario);
     }
     .paso.activo .circulo {
-      background: var(--primario);
-      border-color: var(--primario);
+      background: var(--primario-fuerte);
+      border-color: var(--primario-fuerte);
       color: var(--blanco);
     }
+    /* Ya cumplido: solo el contorno, para que no compita con el actual. */
     .paso.hecho {
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .paso.hecho .circulo {
-      background: var(--primario);
+      background: transparent;
       border-color: var(--primario);
-      color: var(--blanco);
+      color: var(--primario-fuerte);
     }
     .union {
-      width: 56px;
-      height: 1.5px;
+      width: 44px;
+      height: 1px;
       background: var(--borde);
+      transition: background var(--transicion);
     }
     .union.hecha {
       background: var(--primario);
     }
     @media (max-width: 720px) {
       .stepper {
-        padding: 1.1rem 0.5rem;
-        gap: 0.4rem;
+        padding: 1.25rem 0.5rem 1.15rem;
+        gap: 0.5rem;
       }
       .union {
-        width: 26px;
+        width: 24px;
       }
       .paso:not(.activo) .etiqueta {
         display: none;

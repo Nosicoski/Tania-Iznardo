@@ -83,7 +83,7 @@ import { FichaProfesional } from './ficha-profesional';
       overflow-y: auto;
       background: var(--blanco);
       border-radius: var(--radio);
-      box-shadow: 0 24px 60px rgba(22, 48, 47, 0.3);
+      box-shadow: var(--sombra-alta);
       padding: 2rem 1.75rem 1.75rem;
       animation: subir 0.24s ease;
     }
@@ -96,7 +96,9 @@ import { FichaProfesional } from './ficha-profesional';
       right: 0;
       height: 5px;
       border-radius: var(--radio) var(--radio) 0 0;
-      background: linear-gradient(90deg, var(--primario), var(--terciario));
+      /* Dentro de la marca, igual que la cabecera del popup de cuenta: el
+         degradado a ámbar metía un color de advertencia donde no hay ninguna. */
+      background: linear-gradient(90deg, var(--secundario), var(--primario));
     }
     @keyframes subir {
       from {
@@ -126,22 +128,24 @@ import { FichaProfesional } from './ficha-profesional';
     }
     .cerrar:hover {
       background: var(--primario-suave);
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .cabecera {
       text-align: center;
       margin-bottom: 1.5rem;
     }
     .cabecera h2 {
-      font-size: 1.2rem;
-      font-weight: 800;
-      letter-spacing: -0.01em;
+      font-family: var(--fuente-titulo);
+      font-size: calc(var(--txt-lg) * var(--display-ajuste));
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1.2;
     }
     .cabecera p {
       margin: 0.4rem auto 0;
       max-width: 44ch;
       color: var(--neutro);
-      font-size: 0.85rem;
+      font-size: var(--txt-sm);
     }
 
     /* Misma grilla flexible que usa el resto del sitio: se acomoda sola */
@@ -169,12 +173,12 @@ import { FichaProfesional } from './ficha-profesional';
       min-width: 0;
     }
     .dias {
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       font-weight: 700;
-      color: var(--primario);
+      color: var(--primario-fuerte);
     }
     .areas {
-      font-size: 0.72rem;
+      font-size: var(--txt-2xs);
       color: var(--neutro);
       line-height: 1.35;
     }
